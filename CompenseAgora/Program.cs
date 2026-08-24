@@ -1,5 +1,9 @@
+using System.Reflection;
+using CompenseAgora.Common.Behaviors;
 using CompenseAgora.Components;
 using CompenseAgora.Data;
+using FluentValidation;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +14,12 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddDbContext<CompenseAgoraDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("CompenseAgoraDb")));
+
+var applicationAssembly = Assembly.GetExecutingAssembly();
+
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(applicationAssembly));
+builder.Services.AddValidatorsFromAssembly(applicationAssembly);
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
 var app = builder.Build();
 
