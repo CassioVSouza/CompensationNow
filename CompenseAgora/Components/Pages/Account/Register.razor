@@ -1,0 +1,138 @@
+@page "/register"
+@using CompenseAgora.Common.Exceptions
+@using CompenseAgora.Features.Auth.Commands.Register
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+
+<PageTitle>Register</PageTitle>
+
+<h1>Create account</h1>
+
+@if (_errorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+
+<EditForm Model="Input" FormName="register" OnSubmit="HandleRegisterAsync" method="post">
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">First name</label>
+            <InputText class="form-control" @bind-Value="Input.Nome" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Last name</label>
+            <InputText class="form-control" @bind-Value="Input.Sobrenome" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <InputText class="form-control" type="email" @bind-Value="Input.Email" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Mobile phone</label>
+            <InputText class="form-control" @bind-Value="Input.Celular" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Password</label>
+            <InputText class="form-control" type="password" @bind-Value="Input.Password" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Confirm password</label>
+            <InputText class="form-control" type="password" @bind-Value="Input.ConfirmPassword" />
+        </div>
+        <div class="col-md-8">
+            <label class="form-label">Address</label>
+            <InputText class="form-control" @bind-Value="Input.Endereco" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Number</label>
+            <InputText class="form-control" @bind-Value="Input.Numero" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Neighborhood</label>
+            <InputText class="form-control" @bind-Value="Input.Bairro" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">City</label>
+            <InputText class="form-control" @bind-Value="Input.Cidade" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">State</label>
+            <InputText class="form-control" @bind-Value="Input.Estado" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Country</label>
+            <InputText class="form-control" @bind-Value="Input.Pais" />
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-3">Create account</button>
+</EditForm>
+
+<p class="mt-3">
+    Already have an account? <a href="/login">Sign in</a>
+</p>
+
+@code {
+    private string? _errorMessage;
+
+    [SupplyParameterFromForm]
+    public InputModel Input { get; set; } = new();
+
+    private async Task HandleRegisterAsync()
+    {
+        _errorMessage = null;
+
+        if (Input.Password != Input.ConfirmPassword)
+        {
+            _errorMessage = "Passwords do not match.";
+            return;
+        }
+
+        try
+        {
+            var result = await Mediator.Send(new RegisterCommand(
+                Input.Nome,
+                Input.Sobrenome,
+                Input.Email,
+                Input.Password,
+                Input.Endereco,
+                Input.Bairro,
+                Input.Numero,
+                Input.Cidade,
+                Input.Estado,
+                Input.Pais,
+                Input.Celular));
+
+            var destination = result.RequiresConfirmation
+                ? $"/confirm-email?email={Uri.EscapeDataString(Input.Email)}"
+                : "/login";
+
+            NavigationManager.NavigateTo(destination, forceLoad: true);
+        }
+        catch (AuthException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+    }
+
+    public class InputModel
+    {
+        public string Nome { get; set; } = string.Empty;
+        public string Sobrenome { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+        public string Endereco { get; set; } = string.Empty;
+        public string Bairro { get; set; } = string.Empty;
+        public string Numero { get; set; } = string.Empty;
+        public string Cidade { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public string Pais { get; set; } = string.Empty;
+        public string Celular { get; set; } = string.Empty;
+    }
+}

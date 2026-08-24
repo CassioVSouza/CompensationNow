@@ -1,0 +1,123 @@
+@page "/confirm-email"
+@using CompenseAgora.Common.Exceptions
+@using CompenseAgora.Features.Auth.Commands.ConfirmEmail
+@using CompenseAgora.Features.Auth.Commands.ResendConfirmationCode
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+
+<PageTitle>Confirm email</PageTitle>
+
+<h1>Confirm your email</h1>
+
+<p>We sent a confirmation code to <strong>@Input.Email</strong>. Enter it below to activate your account.</p>
+
+@if (_errorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+
+@if (_infoMessage is not null)
+{
+    <div class="alert alert-success" role="alert">@_infoMessage</div>
+}
+
+<EditForm Model="Input" FormName="confirm-email" OnSubmit="HandleConfirmAsync" method="post">
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <InputText class="form-control" type="email" @bind-Value="Input.Email" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Confirmation code</label>
+        <InputText class="form-control" @bind-Value="Input.Code" />
+    </div>
+    <button type="submit" class="btn btn-primary">Confirm</button>
+</EditForm>
+
+<EditForm Model="ResendInput" FormName="resend-code" OnSubmit="HandleResendAsync" method="post" class="mt-2">
+    <InputText style="display:none" @bind-Value="ResendInput.Email" />
+    <button type="submit" class="btn btn-link p-0">Resend code</button>
+</EditForm>
+
+@code {
+    private string? _errorMessage;
+    private string? _infoMessage;
+
+    [SupplyParameterFromForm(FormName = "confirm-email")]
+    public ConfirmInputModel Input { get; set; } = new();
+
+    [SupplyParameterFromForm(FormName = "resend-code")]
+    public ResendInputModel ResendInput { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        var emailFromQuery = GetEmailFromQuery();
+        if (string.IsNullOrEmpty(Input.Email))
+        {
+            Input.Email = emailFromQuery;
+        }
+        if (string.IsNullOrEmpty(ResendInput.Email))
+        {
+            ResendInput.Email = string.IsNullOrEmpty(Input.Email) ? emailFromQuery : Input.Email;
+        }
+    }
+
+    private string GetEmailFromQuery()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+        return query.TryGetValue("email", out var email) ? email.ToString() : string.Empty;
+    }
+
+    private async Task HandleConfirmAsync()
+    {
+        _errorMessage = null;
+        _infoMessage = null;
+
+        try
+        {
+            await Mediator.Send(new ConfirmEmailCommand(Input.Email, Input.Code));
+            NavigationManager.NavigateTo("/login", forceLoad: true);
+        }
+        catch (AuthException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+    }
+
+    private async Task HandleResendAsync()
+    {
+        _errorMessage = null;
+        _infoMessage = null;
+        Input.Email = ResendInput.Email;
+
+        try
+        {
+            await Mediator.Send(new ResendConfirmationCodeCommand(ResendInput.Email));
+            _infoMessage = "A new confirmation code has been sent.";
+        }
+        catch (AuthException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+    }
+
+    public class ConfirmInputModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Code { get; set; } = string.Empty;
+    }
+
+    public class ResendInputModel
+    {
+        public string Email { get; set; } = string.Empty;
+    }
+}

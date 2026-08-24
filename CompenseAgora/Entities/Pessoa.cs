@@ -6,6 +6,9 @@ public class Pessoa
     public string Nome { get; set; } = string.Empty;
     public string Sobrenome { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+
+    /// <summary>Cognito User Pool "sub" (unique user id) — links this profile to its Cognito identity.</summary>
+    public string CognitoSub { get; set; } = string.Empty;
     public string Endereco { get; set; } = string.Empty;
     public string Bairro { get; set; } = string.Empty;
     public string Numero { get; set; } = string.Empty;
