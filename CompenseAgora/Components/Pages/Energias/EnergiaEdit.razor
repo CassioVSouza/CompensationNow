@@ -1,0 +1,109 @@
+@page "/energias/{Codigo:int}/editar"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using CompenseAgora.Common.Exceptions
+@using CompenseAgora.Features.Energias.Commands.UpdateEnergia
+@using CompenseAgora.Features.Energias.Queries.GetEnergiaById
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit energy record</PageTitle>
+
+<h1>Edit energy record</h1>
+
+@if (_errorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+
+@if (_notFound)
+{
+    <p>This energy record could not be found.</p>
+}
+else if (!_loaded)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <EditForm Model="_input" OnValidSubmit="HandleSaveAsync">
+        <DataAnnotationsValidator />
+
+        <div class="mb-3">
+            <label class="form-label">Reference date</label>
+            <InputDate class="form-control" @bind-Value="_input.DataReferencia" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Quantity (kWh)</label>
+            <InputNumber class="form-control" @bind-Value="_input.Quantidade" />
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-3">Save</button>
+        <a class="btn btn-link mt-3" href="/energias">Cancel</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int Codigo { get; set; }
+
+    private EnergiaInputModel _input = new();
+    private string? _errorMessage;
+    private bool _notFound;
+    private bool _loaded;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateTask!;
+        var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var energia = await Mediator.Send(new GetEnergiaByIdQuery(Codigo));
+        if (energia is null || energia.CodigoPessoa != codigoPessoa)
+        {
+            _notFound = true;
+            return;
+        }
+
+        _input = new EnergiaInputModel
+        {
+            DataReferencia = energia.DataReferencia,
+            Quantidade = energia.Quantidade,
+        };
+        _loaded = true;
+    }
+
+    private async Task HandleSaveAsync()
+    {
+        if (_input.Quantidade <= 0)
+        {
+            _errorMessage = "Please inform the energy quantity.";
+            return;
+        }
+
+        try
+        {
+            await Mediator.Send(new UpdateEnergiaCommand(Codigo, _input.DataReferencia, _input.Quantidade));
+            NavigationManager.NavigateTo("/energias");
+        }
+        catch (NotFoundException)
+        {
+            _notFound = true;
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+    }
+
+    private class EnergiaInputModel
+    {
+        public DateOnly DataReferencia { get; set; } = DateOnly.FromDateTime(DateTime.Now);
+        public decimal Quantidade { get; set; }
+    }
+}

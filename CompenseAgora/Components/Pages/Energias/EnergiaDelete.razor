@@ -1,0 +1,80 @@
+@page "/energias/{Codigo:int}/excluir"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using CompenseAgora.Common.Exceptions
+@using CompenseAgora.Features.Energias.Commands.DeleteEnergia
+@using CompenseAgora.Features.Energias.Queries.GetEnergiaById
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+
+<PageTitle>Delete energy record</PageTitle>
+
+<h1>Delete energy record</h1>
+
+@if (_energia is null)
+{
+    @if (!_notFound)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <p>This energy record could not be found.</p>
+    }
+}
+else
+{
+    <p>Are you sure you want to delete this energy record? This action cannot be undone.</p>
+
+    <dl class="row">
+        <dt class="col-sm-3">Reference date</dt>
+        <dd class="col-sm-9">@_energia.DataReferencia.ToString("dd/MM/yyyy")</dd>
+        <dt class="col-sm-3">Quantity</dt>
+        <dd class="col-sm-9">@_energia.Quantidade.ToString("N2")</dd>
+    </dl>
+
+    <button class="btn btn-danger" @onclick="HandleDeleteAsync">Delete</button>
+    <a class="btn btn-link" href="/energias">Cancel</a>
+}
+
+@code {
+    [Parameter]
+    public int Codigo { get; set; }
+
+    private Features.Energias.EnergiaDto? _energia;
+    private bool _notFound;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateTask!;
+        var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var energia = await Mediator.Send(new GetEnergiaByIdQuery(Codigo));
+        if (energia is null || energia.CodigoPessoa != codigoPessoa)
+        {
+            _notFound = true;
+            return;
+        }
+
+        _energia = energia;
+    }
+
+    private async Task HandleDeleteAsync()
+    {
+        try
+        {
+            await Mediator.Send(new DeleteEnergiaCommand(Codigo));
+            NavigationManager.NavigateTo("/energias");
+        }
+        catch (NotFoundException)
+        {
+            _notFound = true;
+            _energia = null;
+        }
+    }
+}

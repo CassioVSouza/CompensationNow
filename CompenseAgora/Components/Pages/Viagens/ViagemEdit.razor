@@ -1,0 +1,126 @@
+@page "/viagens/{Codigo:int}/editar"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using CompenseAgora.Common.Exceptions
+@using CompenseAgora.Features.Combustiveis
+@using CompenseAgora.Features.Combustiveis.Queries.GetCombustiveis
+@using CompenseAgora.Features.Frotas
+@using CompenseAgora.Features.Frotas.Queries.GetFrotas
+@using CompenseAgora.Features.Viagens.Commands.UpdateViagem
+@using CompenseAgora.Features.Viagens.Queries.GetViagemById
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit trip</PageTitle>
+
+<h1>Edit trip</h1>
+
+@if (_errorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+
+@if (_notFound)
+{
+    <p>This trip could not be found.</p>
+}
+else if (_frotas is null || _combustiveis is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <EditForm Model="_input" OnValidSubmit="HandleSaveAsync">
+        <DataAnnotationsValidator />
+
+        <ViagemFormFields Model="_input" Frotas="_frotas" Combustiveis="_combustiveis" />
+
+        <button type="submit" class="btn btn-primary mt-3">Save</button>
+        <a class="btn btn-link mt-3" href="/viagens">Cancel</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int Codigo { get; set; }
+
+    private ViagemInputModel _input = new();
+    private List<FrotaDto>? _frotas;
+    private List<CombustivelDto>? _combustiveis;
+    private string? _errorMessage;
+    private bool _notFound;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateTask!;
+        var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var viagem = await Mediator.Send(new GetViagemByIdQuery(Codigo));
+        if (viagem is null || viagem.CodigoPessoa != codigoPessoa)
+        {
+            _notFound = true;
+            return;
+        }
+
+        _input = new ViagemInputModel
+        {
+            CodigoFrota = viagem.CodigoFrota,
+            DataReferencia = viagem.DataReferencia,
+            TipoRegistro = InferTipoRegistro(viagem),
+            AnoFrota = viagem.AnoFrota,
+            Consumo = viagem.Consumo,
+            DistanciaKM = viagem.DistanciaKM,
+            CodigoCombustivel = viagem.CodigoCombustivel ?? 0,
+        };
+
+        _frotas = await Mediator.Send(new GetFrotasQuery());
+        _combustiveis = await Mediator.Send(new GetCombustiveisQuery());
+    }
+
+    private async Task HandleSaveAsync()
+    {
+        _errorMessage = ViagemCreate.ValidateForMode(_input);
+        if (_errorMessage is not null)
+        {
+            return;
+        }
+
+        var command = new UpdateViagemCommand(
+            Codigo,
+            _input.CodigoFrota,
+            _input.TipoRegistro == TipoRegistroViagem.PorDistancia ? null : _input.CodigoCombustivel,
+            _input.DataReferencia,
+            _input.TipoRegistro == TipoRegistroViagem.PorDistancia ? 0 : _input.Consumo,
+            _input.TipoRegistro == TipoRegistroViagem.PorCombustivel ? 0 : _input.AnoFrota,
+            _input.TipoRegistro == TipoRegistroViagem.PorDistancia ? _input.DistanciaKM : 0);
+
+        try
+        {
+            await Mediator.Send(command);
+            NavigationManager.NavigateTo("/viagens");
+        }
+        catch (NotFoundException)
+        {
+            _notFound = true;
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+    }
+
+    private static TipoRegistroViagem InferTipoRegistro(Features.Viagens.ViagemDto viagem)
+    {
+        if (viagem.CodigoCombustivel is null)
+        {
+            return TipoRegistroViagem.PorDistancia;
+        }
+
+        return viagem.AnoFrota > 0 ? TipoRegistroViagem.PorTipoEAno : TipoRegistroViagem.PorCombustivel;
+    }
+}

@@ -10,8 +10,8 @@ public class Viagem
     public int CodigoFrota { get; set; }
     public Frota Frota { get; set; } = null!;
 
-    public int CodigoCombustivel { get; set; }
-    public Combustivel Combustivel { get; set; } = null!;
+    public int? CodigoCombustivel { get; set; }
+    public Combustivel? Combustivel { get; set; }
 
     public DateOnly CriadoEm { get; set; }
     public DateOnly DataReferencia { get; set; }

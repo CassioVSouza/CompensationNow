@@ -1,0 +1,73 @@
+@page "/viagens"
+@attribute [Authorize]
+@attribute [StreamRendering]
+@using System.Security.Claims
+@using CompenseAgora.Features.Viagens.Queries.GetViagens
+@using MediatR
+@inject IMediator Mediator
+
+<PageTitle>Trips</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Trips</h1>
+    <a class="btn btn-primary" href="/viagens/nova">New trip</a>
+</div>
+
+@if (_viagens is null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (_viagens.Count == 0)
+{
+    <p>No trips registered yet. Click "New trip" to add one.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Reference date</th>
+                <th>Vehicle</th>
+                <th>Fuel</th>
+                <th>Fleet year</th>
+                <th>Consumption</th>
+                <th>Distance (km)</th>
+                <th>CO2 emission</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var viagem in _viagens)
+            {
+                <tr>
+                    <td>@viagem.DataReferencia.ToString("dd/MM/yyyy")</td>
+                    <td>@viagem.FrotaNome</td>
+                    <td>@(viagem.CombustivelNome ?? "-")</td>
+                    <td>@(viagem.AnoFrota == 0 ? "-" : viagem.AnoFrota.ToString())</td>
+                    <td>@(viagem.Consumo == 0 ? "-" : viagem.Consumo.ToString("N2"))</td>
+                    <td>@(viagem.DistanciaKM == 0 ? "-" : viagem.DistanciaKM.ToString("N2"))</td>
+                    <td>@viagem.EmissaoCO2.ToString("N2")</td>
+                    <td class="text-nowrap">
+                        <a class="btn btn-sm btn-outline-secondary" href="/viagens/@viagem.Codigo/editar">Edit</a>
+                        <a class="btn btn-sm btn-outline-danger" href="/viagens/@viagem.Codigo/excluir">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Features.Viagens.ViagemDto>? _viagens;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateTask!;
+        var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        _viagens = await Mediator.Send(new GetViagensQuery(codigoPessoa));
+    }
+}

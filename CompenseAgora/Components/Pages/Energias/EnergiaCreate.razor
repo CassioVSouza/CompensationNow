@@ -1,0 +1,70 @@
+@page "/energias/nova"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using CompenseAgora.Features.Energias.Commands.CreateEnergia
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+
+<PageTitle>New energy record</PageTitle>
+
+<h1>New energy record</h1>
+
+@if (_errorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+
+<EditForm Model="_input" OnValidSubmit="HandleSaveAsync">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label class="form-label">Reference date</label>
+        <InputDate class="form-control" @bind-Value="_input.DataReferencia" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Quantity (kWh)</label>
+        <InputNumber class="form-control" @bind-Value="_input.Quantidade" />
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-3">Save</button>
+    <a class="btn btn-link mt-3" href="/energias">Cancel</a>
+</EditForm>
+
+@code {
+    private EnergiaInputModel _input = new();
+    private string? _errorMessage;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private async Task HandleSaveAsync()
+    {
+        if (_input.Quantidade <= 0)
+        {
+            _errorMessage = "Please inform the energy quantity.";
+            return;
+        }
+
+        var authState = await AuthenticationStateTask!;
+        var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        try
+        {
+            await Mediator.Send(new CreateEnergiaCommand(codigoPessoa, _input.DataReferencia, _input.Quantidade));
+            NavigationManager.NavigateTo("/energias");
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+    }
+
+    private class EnergiaInputModel
+    {
+        public DateOnly DataReferencia { get; set; } = DateOnly.FromDateTime(DateTime.Now);
+        public decimal Quantidade { get; set; }
+    }
+}

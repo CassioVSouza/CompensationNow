@@ -1,0 +1,65 @@
+@page "/energias"
+@attribute [Authorize]
+@attribute [StreamRendering]
+@using System.Security.Claims
+@using CompenseAgora.Features.Energias.Queries.GetEnergias
+@using MediatR
+@inject IMediator Mediator
+
+<PageTitle>Energy</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Energy</h1>
+    <a class="btn btn-primary" href="/energias/nova">New energy record</a>
+</div>
+
+@if (_energias is null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (_energias.Count == 0)
+{
+    <p>No energy records registered yet. Click "New energy record" to add one.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Reference date</th>
+                <th>Quantity</th>
+                <th>CO2 emission</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var energia in _energias)
+            {
+                <tr>
+                    <td>@energia.DataReferencia.ToString("dd/MM/yyyy")</td>
+                    <td>@energia.Quantidade.ToString("N2")</td>
+                    <td>@energia.EmissaoCO2.ToString("N2")</td>
+                    <td class="text-nowrap">
+                        <a class="btn btn-sm btn-outline-secondary" href="/energias/@energia.Codigo/editar">Edit</a>
+                        <a class="btn btn-sm btn-outline-danger" href="/energias/@energia.Codigo/excluir">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Features.Energias.EnergiaDto>? _energias;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateTask!;
+        var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        _energias = await Mediator.Send(new GetEnergiasQuery(codigoPessoa));
+    }
+}

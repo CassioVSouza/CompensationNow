@@ -28,6 +28,7 @@ public class ViagemConfiguration : IEntityTypeConfiguration<Viagem>
         builder.HasOne(v => v.Combustivel)
             .WithMany(c => c.Viagens)
             .HasForeignKey(v => v.CodigoCombustivel)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

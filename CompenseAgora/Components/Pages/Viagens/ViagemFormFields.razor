@@ -1,0 +1,103 @@
+@using CompenseAgora.Features.Frotas
+@using CompenseAgora.Features.Combustiveis
+
+<div class="mb-3">
+    <label class="form-label">Vehicle (fleet)</label>
+    <InputSelect class="form-select" @bind-Value="Model.CodigoFrota">
+        <option value="0">Select a vehicle...</option>
+        @foreach (var frota in Frotas)
+        {
+            <option value="@frota.Codigo">@frota.Nome</option>
+        }
+    </InputSelect>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Reference date</label>
+    <InputDate class="form-control" @bind-Value="Model.DataReferencia" />
+</div>
+
+<div class="mb-3">
+    <label class="form-label d-block">Registration type</label>
+    <InputRadioGroup @bind-Value="Model.TipoRegistro">
+        <div class="form-check form-check-inline">
+            <InputRadio class="form-check-input" id="tipo-distancia" Value="TipoRegistroViagem.PorDistancia" />
+            <label class="form-check-label" for="tipo-distancia">By distance</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <InputRadio class="form-check-input" id="tipo-combustivel" Value="TipoRegistroViagem.PorCombustivel" />
+            <label class="form-check-label" for="tipo-combustivel">By fuel</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <InputRadio class="form-check-input" id="tipo-tipoeano" Value="TipoRegistroViagem.PorTipoEAno" />
+            <label class="form-check-label" for="tipo-tipoeano">By type and year</label>
+        </div>
+    </InputRadioGroup>
+</div>
+
+@if (Model.TipoRegistro == TipoRegistroViagem.PorDistancia)
+{
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">Fleet year</label>
+            <InputNumber class="form-control" @bind-Value="Model.AnoFrota" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Distance (km)</label>
+            <InputNumber class="form-control" @bind-Value="Model.DistanciaKM" />
+        </div>
+    </div>
+}
+else if (Model.TipoRegistro == TipoRegistroViagem.PorCombustivel)
+{
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">Fuel consumption</label>
+            <InputNumber class="form-control" @bind-Value="Model.Consumo" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Fuel</label>
+            <InputSelect class="form-select" @bind-Value="Model.CodigoCombustivel">
+                <option value="0">Select a fuel...</option>
+                @foreach (var combustivel in Combustiveis)
+                {
+                    <option value="@combustivel.Codigo">@combustivel.Nome</option>
+                }
+            </InputSelect>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Fleet year</label>
+            <InputNumber class="form-control" @bind-Value="Model.AnoFrota" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Fuel consumption</label>
+            <InputNumber class="form-control" @bind-Value="Model.Consumo" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Fuel</label>
+            <InputSelect class="form-select" @bind-Value="Model.CodigoCombustivel">
+                <option value="0">Select a fuel...</option>
+                @foreach (var combustivel in Combustiveis)
+                {
+                    <option value="@combustivel.Codigo">@combustivel.Nome</option>
+                }
+            </InputSelect>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public ViagemInputModel Model { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public List<FrotaDto> Frotas { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public List<CombustivelDto> Combustiveis { get; set; } = [];
+}

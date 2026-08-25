@@ -1,0 +1,104 @@
+@page "/viagens/nova"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using CompenseAgora.Features.Combustiveis
+@using CompenseAgora.Features.Combustiveis.Queries.GetCombustiveis
+@using CompenseAgora.Features.Frotas
+@using CompenseAgora.Features.Frotas.Queries.GetFrotas
+@using CompenseAgora.Features.Viagens.Commands.CreateViagem
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+
+<PageTitle>New trip</PageTitle>
+
+<h1>New trip</h1>
+
+@if (_errorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+
+@if (_frotas is null || _combustiveis is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <EditForm Model="_input" OnValidSubmit="HandleSaveAsync">
+        <DataAnnotationsValidator />
+
+        <ViagemFormFields Model="_input" Frotas="_frotas" Combustiveis="_combustiveis" />
+
+        <button type="submit" class="btn btn-primary mt-3">Save</button>
+        <a class="btn btn-link mt-3" href="/viagens">Cancel</a>
+    </EditForm>
+}
+
+@code {
+    private ViagemInputModel _input = new();
+    private List<FrotaDto>? _frotas;
+    private List<CombustivelDto>? _combustiveis;
+    private string? _errorMessage;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _frotas = await Mediator.Send(new GetFrotasQuery());
+        _combustiveis = await Mediator.Send(new GetCombustiveisQuery());
+    }
+
+    private async Task HandleSaveAsync()
+    {
+        _errorMessage = ValidateForMode(_input);
+        if (_errorMessage is not null)
+        {
+            return;
+        }
+
+        var authState = await AuthenticationStateTask!;
+        var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var command = new CreateViagemCommand(
+            codigoPessoa,
+            _input.CodigoFrota,
+            _input.TipoRegistro == TipoRegistroViagem.PorDistancia ? null : _input.CodigoCombustivel,
+            _input.DataReferencia,
+            _input.TipoRegistro == TipoRegistroViagem.PorDistancia ? 0 : _input.Consumo,
+            _input.TipoRegistro == TipoRegistroViagem.PorCombustivel ? 0 : _input.AnoFrota,
+            _input.TipoRegistro == TipoRegistroViagem.PorDistancia ? _input.DistanciaKM : 0);
+
+        try
+        {
+            await Mediator.Send(command);
+            NavigationManager.NavigateTo("/viagens");
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+    }
+
+    internal static string? ValidateForMode(ViagemInputModel input)
+    {
+        if (input.CodigoFrota <= 0)
+        {
+            return "Please select a vehicle.";
+        }
+
+        switch (input.TipoRegistro)
+        {
+            case TipoRegistroViagem.PorDistancia when input.DistanciaKM <= 0:
+                return "Please inform the distance traveled.";
+            case TipoRegistroViagem.PorCombustivel when input.Consumo <= 0 || input.CodigoCombustivel <= 0:
+                return "Please inform the fuel consumption and select a fuel.";
+            case TipoRegistroViagem.PorTipoEAno when input.AnoFrota <= 0 || input.Consumo <= 0 || input.CodigoCombustivel <= 0:
+                return "Please inform the fleet year, fuel consumption and select a fuel.";
+            default:
+                return null;
+        }
+    }
+}
