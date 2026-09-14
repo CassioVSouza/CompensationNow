@@ -1,5 +1,15 @@
 ﻿@inherits LayoutComponentBase
 
+@* MudBlazor's global services (theme, popovers, dialogs, snackbars) need an
+   interactive circuit. Scoping @rendermode to just these provider components
+   -- rather than to MainLayout itself -- keeps every other page's render mode
+   untouched, which matters because the static-SSR auth pages (Login/Register,
+   the NavMenu logout form) rely on MainLayout staying render-mode-neutral. *@
+<MudThemeProvider Theme="CompenseAgoraTheme.Default" @rendermode="InteractiveServer" />
+<MudPopoverProvider @rendermode="InteractiveServer" />
+<MudDialogProvider @rendermode="InteractiveServer" />
+<MudSnackbarProvider @rendermode="InteractiveServer" />
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -7,7 +17,7 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">Sobre</a>
         </div>
 
         <article class="content px-4">
@@ -17,7 +27,7 @@
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
+    Ocorreu um erro não tratado.
+    <a href="." class="reload">Recarregar</a>
     <span class="dismiss">🗙</span>
 </div>

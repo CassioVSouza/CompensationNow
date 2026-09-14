@@ -1,94 +1,86 @@
 @using CompenseAgora.Features.Frotas
 @using CompenseAgora.Features.Combustiveis
 
-<div class="mb-3">
-    <label class="form-label">Vehicle (fleet)</label>
-    <InputSelect class="form-select" @bind-Value="Model.CodigoFrota">
-        <option value="0">Select a vehicle...</option>
-        @foreach (var frota in Frotas)
-        {
-            <option value="@frota.Codigo">@frota.Nome</option>
-        }
-    </InputSelect>
-</div>
+<MudGrid>
+    <MudItem xs="12" sm="6">
+        <MudSelect T="int" Label="Veículo (frota)" @bind-Value="Model.CodigoFrota" @bind-Value:after="NotifyChangedAsync"
+                   Variant="Variant.Outlined" Placeholder="Selecione um veículo..."
+                   HelperText="O veículo cadastrado ao qual esta viagem pertence.">
+            @foreach (var frota in Frotas)
+            {
+                <MudSelectItem T="int" Value="@frota.Codigo">@frota.Nome</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudDatePicker Label="Data de referência" @bind-Date="_dataReferencia" @bind-Date:after="NotifyChangedAsync"
+                       Variant="Variant.Outlined" Editable="true" DateFormat="dd/MM/yyyy"
+                       HelperText="Data em que a viagem ocorreu." />
+    </MudItem>
+</MudGrid>
 
-<div class="mb-3">
-    <label class="form-label">Reference date</label>
-    <InputDate class="form-control" @bind-Value="Model.DataReferencia" />
-</div>
-
-<div class="mb-3">
-    <label class="form-label d-block">Registration type</label>
-    <InputRadioGroup @bind-Value="Model.TipoRegistro">
-        <div class="form-check form-check-inline">
-            <InputRadio class="form-check-input" id="tipo-distancia" Value="TipoRegistroViagem.PorDistancia" />
-            <label class="form-check-label" for="tipo-distancia">By distance</label>
-        </div>
-        <div class="form-check form-check-inline">
-            <InputRadio class="form-check-input" id="tipo-combustivel" Value="TipoRegistroViagem.PorCombustivel" />
-            <label class="form-check-label" for="tipo-combustivel">By fuel</label>
-        </div>
-        <div class="form-check form-check-inline">
-            <InputRadio class="form-check-input" id="tipo-tipoeano" Value="TipoRegistroViagem.PorTipoEAno" />
-            <label class="form-check-label" for="tipo-tipoeano">By type and year</label>
-        </div>
-    </InputRadioGroup>
-</div>
+<MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Tipo de registro</MudText>
+<MudRadioGroup T="TipoRegistroViagem" @bind-Value="Model.TipoRegistro" @bind-Value:after="NotifyChangedAsync">
+    <MudRadio T="TipoRegistroViagem" Value="TipoRegistroViagem.PorDistancia" Color="Color.Primary">Por distância</MudRadio>
+    <MudRadio T="TipoRegistroViagem" Value="TipoRegistroViagem.PorCombustivel" Color="Color.Primary">Por combustível</MudRadio>
+    <MudRadio T="TipoRegistroViagem" Value="TipoRegistroViagem.PorTipoEAno" Color="Color.Primary">Por tipo e ano</MudRadio>
+</MudRadioGroup>
 
 @if (Model.TipoRegistro == TipoRegistroViagem.PorDistancia)
 {
-    <div class="row g-3">
-        <div class="col-md-6">
-            <label class="form-label">Fleet year</label>
-            <InputNumber class="form-control" @bind-Value="Model.AnoFrota" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Distance (km)</label>
-            <InputNumber class="form-control" @bind-Value="Model.DistanciaKM" />
-        </div>
-    </div>
+    <MudGrid Class="mt-1">
+        <MudItem xs="12" sm="6">
+            <MudNumericField T="int" Label="Ano da frota" @bind-Value="Model.AnoFrota" @bind-Value:after="NotifyChangedAsync"
+                              Variant="Variant.Outlined" Min="0"
+                              HelperText="Ano de fabricação do veículo (opcional)." />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudNumericField T="decimal" Label="Distância (km)" @bind-Value="Model.DistanciaKM" @bind-Value:after="NotifyChangedAsync"
+                              Variant="Variant.Outlined" Min="0"
+                              HelperText="Distância total percorrida, em quilômetros." />
+        </MudItem>
+    </MudGrid>
 }
 else if (Model.TipoRegistro == TipoRegistroViagem.PorCombustivel)
 {
-    <div class="row g-3">
-        <div class="col-md-6">
-            <label class="form-label">Fuel consumption</label>
-            <InputNumber class="form-control" @bind-Value="Model.Consumo" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Fuel</label>
-            <InputSelect class="form-select" @bind-Value="Model.CodigoCombustivel">
-                <option value="0">Select a fuel...</option>
+    <MudGrid Class="mt-1">
+        <MudItem xs="12" sm="6">
+            <MudNumericField T="decimal" Label="Consumo de combustível" @bind-Value="Model.Consumo" @bind-Value:after="NotifyChangedAsync"
+                              Variant="Variant.Outlined" Min="0"
+                              HelperText="Quantidade de combustível consumida, em litros." />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudSelect T="int" Label="Combustível" @bind-Value="Model.CodigoCombustivel" @bind-Value:after="NotifyChangedAsync"
+                       Variant="Variant.Outlined" Placeholder="Selecione um combustível...">
                 @foreach (var combustivel in Combustiveis)
                 {
-                    <option value="@combustivel.Codigo">@combustivel.Nome</option>
+                    <MudSelectItem T="int" Value="@combustivel.Codigo">@combustivel.Nome</MudSelectItem>
                 }
-            </InputSelect>
-        </div>
-    </div>
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
 }
 else
 {
-    <div class="row g-3">
-        <div class="col-md-4">
-            <label class="form-label">Fleet year</label>
-            <InputNumber class="form-control" @bind-Value="Model.AnoFrota" />
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Fuel consumption</label>
-            <InputNumber class="form-control" @bind-Value="Model.Consumo" />
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Fuel</label>
-            <InputSelect class="form-select" @bind-Value="Model.CodigoCombustivel">
-                <option value="0">Select a fuel...</option>
+    <MudGrid Class="mt-1">
+        <MudItem xs="12" sm="4">
+            <MudNumericField T="int" Label="Ano da frota" @bind-Value="Model.AnoFrota" @bind-Value:after="NotifyChangedAsync"
+                              Variant="Variant.Outlined" Min="0" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudNumericField T="decimal" Label="Consumo de combustível" @bind-Value="Model.Consumo" @bind-Value:after="NotifyChangedAsync"
+                              Variant="Variant.Outlined" Min="0" HelperText="Em litros." />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="int" Label="Combustível" @bind-Value="Model.CodigoCombustivel" @bind-Value:after="NotifyChangedAsync"
+                       Variant="Variant.Outlined" Placeholder="Selecione um combustível...">
                 @foreach (var combustivel in Combustiveis)
                 {
-                    <option value="@combustivel.Codigo">@combustivel.Nome</option>
+                    <MudSelectItem T="int" Value="@combustivel.Codigo">@combustivel.Nome</MudSelectItem>
                 }
-            </InputSelect>
-        </div>
-    </div>
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
 }
 
 @code {
@@ -100,4 +92,25 @@ else
 
     [Parameter, EditorRequired]
     public List<CombustivelDto> Combustiveis { get; set; } = [];
+
+    /// <summary>Raised after any field changes, so the parent page can re-run business validation live.</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private DateTime? _dataReferencia;
+
+    protected override void OnParametersSet()
+    {
+        _dataReferencia = Model.DataReferencia.ToDateTime(TimeOnly.MinValue);
+    }
+
+    private async Task NotifyChangedAsync()
+    {
+        Model.DataReferencia = DateOnly.FromDateTime(_dataReferencia ?? DateTime.Now);
+
+        if (OnChanged.HasDelegate)
+        {
+            await OnChanged.InvokeAsync();
+        }
+    }
 }

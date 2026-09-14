@@ -15,9 +15,9 @@ public class UpdateEnergiaCommandValidator : AbstractValidator<UpdateEnergiaComm
 {
     public UpdateEnergiaCommandValidator()
     {
-        RuleFor(x => x.Codigo).GreaterThan(0);
-        RuleFor(x => x.DataReferencia).NotEqual(default(DateOnly));
-        RuleFor(x => x.Quantidade).GreaterThan(0);
+        RuleFor(x => x.Codigo).GreaterThan(0).WithMessage("Código deve ser maior que zero.");
+        RuleFor(x => x.DataReferencia).NotEqual(default(DateOnly)).WithMessage("Data de referência é obrigatória.");
+        RuleFor(x => x.Quantidade).GreaterThan(0).WithMessage("Quantidade deve ser maior que zero.");
     }
 }
 

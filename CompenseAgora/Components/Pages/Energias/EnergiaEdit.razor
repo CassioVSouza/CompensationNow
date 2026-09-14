@@ -8,42 +8,58 @@
 @using MediatR
 @inject IMediator Mediator
 @inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
 
-<PageTitle>Edit energy record</PageTitle>
+<PageTitle>Editar registro de energia</PageTitle>
 
-<h1>Edit energy record</h1>
-
-@if (_errorMessage is not null)
-{
-    <div class="alert alert-danger" role="alert">@_errorMessage</div>
-}
+<MudText Typo="Typo.h4" Class="mb-4">Editar registro de energia</MudText>
 
 @if (_notFound)
 {
-    <p>This energy record could not be found.</p>
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+        Este registro de energia não foi encontrado. Ele pode já ter sido excluído.
+    </MudAlert>
+    <MudButton Class="mt-3" Variant="Variant.Text" Href="/energias">Voltar para a lista</MudButton>
 }
 else if (!_loaded)
 {
-    <p><em>Loading...</em></p>
+    <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+        <span>Carregando registro de energia…</span>
+    </div>
 }
 else
 {
-    <EditForm Model="_input" OnValidSubmit="HandleSaveAsync">
-        <DataAnnotationsValidator />
+    <MudPaper Class="pa-4" Elevation="1" Style="max-width: 640px;">
+        @if (_errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+        }
 
-        <div class="mb-3">
-            <label class="form-label">Reference date</label>
-            <InputDate class="form-control" @bind-Value="_input.DataReferencia" />
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="Data de referência" @bind-Date="_dataReferencia" @bind-Date:after="ClearError"
+                               Variant="Variant.Outlined" Editable="true" DateFormat="dd/MM/yyyy"
+                               HelperText="Data a que este consumo de energia se refere." />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="decimal" Label="Quantidade (kWh)" @bind-Value="_input.Quantidade" @bind-Value:after="ClearError"
+                                  Variant="Variant.Outlined" Min="0"
+                                  HelperText="Consumo de energia elétrica no período, em quilowatt-hora." />
+            </MudItem>
+        </MudGrid>
+
+        <div class="d-flex gap-2 mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSaveAsync" Disabled="@_isSaving">
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Salvar
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/energias" Disabled="@_isSaving">Cancelar</MudButton>
         </div>
-
-        <div class="mb-3">
-            <label class="form-label">Quantity (kWh)</label>
-            <InputNumber class="form-control" @bind-Value="_input.Quantidade" />
-        </div>
-
-        <button type="submit" class="btn btn-primary mt-3">Save</button>
-        <a class="btn btn-link mt-3" href="/energias">Cancel</a>
-    </EditForm>
+    </MudPaper>
 }
 
 @code {
@@ -51,9 +67,11 @@ else
     public int Codigo { get; set; }
 
     private EnergiaInputModel _input = new();
+    private DateTime? _dataReferencia;
     private string? _errorMessage;
     private bool _notFound;
     private bool _loaded;
+    private bool _isSaving;
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
@@ -75,20 +93,31 @@ else
             DataReferencia = energia.DataReferencia,
             Quantidade = energia.Quantidade,
         };
+        _dataReferencia = energia.DataReferencia.ToDateTime(TimeOnly.MinValue);
         _loaded = true;
+    }
+
+    private void ClearError()
+    {
+        _input.DataReferencia = DateOnly.FromDateTime(_dataReferencia ?? DateTime.Now);
+        _errorMessage = null;
     }
 
     private async Task HandleSaveAsync()
     {
+        _input.DataReferencia = DateOnly.FromDateTime(_dataReferencia ?? DateTime.Now);
+
         if (_input.Quantidade <= 0)
         {
-            _errorMessage = "Please inform the energy quantity.";
+            _errorMessage = "Informe a quantidade de energia.";
             return;
         }
 
+        _isSaving = true;
         try
         {
             await Mediator.Send(new UpdateEnergiaCommand(Codigo, _input.DataReferencia, _input.Quantidade));
+            Snackbar.Add("Registro de energia atualizado com sucesso.", Severity.Success);
             NavigationManager.NavigateTo("/energias");
         }
         catch (NotFoundException)
@@ -98,6 +127,14 @@ else
         catch (FluentValidation.ValidationException ex)
         {
             _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível salvar as alterações agora. Tente novamente em instantes.";
+        }
+        finally
+        {
+            _isSaving = false;
         }
     }
 

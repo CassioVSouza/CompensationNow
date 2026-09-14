@@ -8,37 +8,73 @@
 @using MediatR
 @inject IMediator Mediator
 @inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
 
-<PageTitle>Delete trip</PageTitle>
+<PageTitle>Excluir viagem</PageTitle>
 
-<h1>Delete trip</h1>
+<MudText Typo="Typo.h4" Class="mb-4">Excluir viagem</MudText>
 
 @if (_viagem is null)
 {
     @if (!_notFound)
     {
-        <p><em>Loading...</em></p>
+        <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+            <span>Carregando viagem…</span>
+        </div>
     }
     else
     {
-        <p>This trip could not be found.</p>
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+            Esta viagem não foi encontrada. Ela pode já ter sido excluída.
+        </MudAlert>
+        <MudButton Class="mt-3" Variant="Variant.Text" Href="/viagens">Voltar para a lista</MudButton>
     }
 }
 else
 {
-    <p>Are you sure you want to delete this trip? This action cannot be undone.</p>
+    <MudPaper Class="pa-4" Elevation="1" Style="max-width: 640px;">
+        @if (_errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+        }
 
-    <dl class="row">
-        <dt class="col-sm-3">Reference date</dt>
-        <dd class="col-sm-9">@_viagem.DataReferencia.ToString("dd/MM/yyyy")</dd>
-        <dt class="col-sm-3">Vehicle</dt>
-        <dd class="col-sm-9">@_viagem.FrotaNome</dd>
-        <dt class="col-sm-3">Fuel</dt>
-        <dd class="col-sm-9">@(_viagem.CombustivelNome ?? "-")</dd>
-    </dl>
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+            Tem certeza de que deseja excluir esta viagem? Esta ação não pode ser desfeita.
+        </MudAlert>
 
-    <button class="btn btn-danger" @onclick="HandleDeleteAsync">Delete</button>
-    <a class="btn btn-link" href="/viagens">Cancel</a>
+        <MudSimpleTable Dense="true" Elevation="0">
+            <tbody>
+                <tr>
+                    <td><MudText Typo="Typo.body2" Color="Color.Secondary">Data de referência</MudText></td>
+                    <td><MudText Typo="Typo.body1">@_viagem.DataReferencia.ToString("dd/MM/yyyy")</MudText></td>
+                </tr>
+                <tr>
+                    <td><MudText Typo="Typo.body2" Color="Color.Secondary">Veículo</MudText></td>
+                    <td><MudText Typo="Typo.body1">@_viagem.FrotaNome</MudText></td>
+                </tr>
+                <tr>
+                    <td><MudText Typo="Typo.body2" Color="Color.Secondary">Combustível</MudText></td>
+                    <td><MudText Typo="Typo.body1">@(_viagem.CombustivelNome ?? "-")</MudText></td>
+                </tr>
+                <tr>
+                    <td><MudText Typo="Typo.body2" Color="Color.Secondary">Emissão de CO2</MudText></td>
+                    <td><MudText Typo="Typo.body1">@_viagem.EmissaoCO2.ToString("N2") kg</MudText></td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+
+        <div class="d-flex gap-2 mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="HandleDeleteAsync" Disabled="@_isDeleting">
+                @if (_isDeleting)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Excluir viagem
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/viagens" Disabled="@_isDeleting">Cancelar</MudButton>
+        </div>
+    </MudPaper>
 }
 
 @code {
@@ -47,6 +83,8 @@ else
 
     private Features.Viagens.ViagemDto? _viagem;
     private bool _notFound;
+    private bool _isDeleting;
+    private string? _errorMessage;
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
@@ -68,15 +106,25 @@ else
 
     private async Task HandleDeleteAsync()
     {
+        _isDeleting = true;
         try
         {
             await Mediator.Send(new DeleteViagemCommand(Codigo));
+            Snackbar.Add("Viagem excluída com sucesso.", Severity.Success);
             NavigationManager.NavigateTo("/viagens");
         }
         catch (NotFoundException)
         {
             _notFound = true;
             _viagem = null;
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível excluir a viagem agora. Tente novamente em instantes.";
+        }
+        finally
+        {
+            _isDeleting = false;
         }
     }
 }

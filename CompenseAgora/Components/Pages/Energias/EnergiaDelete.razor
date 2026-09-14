@@ -8,35 +8,69 @@
 @using MediatR
 @inject IMediator Mediator
 @inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
 
-<PageTitle>Delete energy record</PageTitle>
+<PageTitle>Excluir registro de energia</PageTitle>
 
-<h1>Delete energy record</h1>
+<MudText Typo="Typo.h4" Class="mb-4">Excluir registro de energia</MudText>
 
 @if (_energia is null)
 {
     @if (!_notFound)
     {
-        <p><em>Loading...</em></p>
+        <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+            <span>Carregando registro de energia…</span>
+        </div>
     }
     else
     {
-        <p>This energy record could not be found.</p>
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+            Este registro de energia não foi encontrado. Ele pode já ter sido excluído.
+        </MudAlert>
+        <MudButton Class="mt-3" Variant="Variant.Text" Href="/energias">Voltar para a lista</MudButton>
     }
 }
 else
 {
-    <p>Are you sure you want to delete this energy record? This action cannot be undone.</p>
+    <MudPaper Class="pa-4" Elevation="1" Style="max-width: 640px;">
+        @if (_errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+        }
 
-    <dl class="row">
-        <dt class="col-sm-3">Reference date</dt>
-        <dd class="col-sm-9">@_energia.DataReferencia.ToString("dd/MM/yyyy")</dd>
-        <dt class="col-sm-3">Quantity</dt>
-        <dd class="col-sm-9">@_energia.Quantidade.ToString("N2")</dd>
-    </dl>
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+            Tem certeza de que deseja excluir este registro de energia? Esta ação não pode ser desfeita.
+        </MudAlert>
 
-    <button class="btn btn-danger" @onclick="HandleDeleteAsync">Delete</button>
-    <a class="btn btn-link" href="/energias">Cancel</a>
+        <MudSimpleTable Dense="true" Elevation="0">
+            <tbody>
+                <tr>
+                    <td><MudText Typo="Typo.body2" Color="Color.Secondary">Data de referência</MudText></td>
+                    <td><MudText Typo="Typo.body1">@_energia.DataReferencia.ToString("dd/MM/yyyy")</MudText></td>
+                </tr>
+                <tr>
+                    <td><MudText Typo="Typo.body2" Color="Color.Secondary">Quantidade</MudText></td>
+                    <td><MudText Typo="Typo.body1">@_energia.Quantidade.ToString("N2") kWh</MudText></td>
+                </tr>
+                <tr>
+                    <td><MudText Typo="Typo.body2" Color="Color.Secondary">Emissão de CO2</MudText></td>
+                    <td><MudText Typo="Typo.body1">@_energia.EmissaoCO2.ToString("N2") kg</MudText></td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+
+        <div class="d-flex gap-2 mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="HandleDeleteAsync" Disabled="@_isDeleting">
+                @if (_isDeleting)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Excluir registro
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/energias" Disabled="@_isDeleting">Cancelar</MudButton>
+        </div>
+    </MudPaper>
 }
 
 @code {
@@ -45,6 +79,8 @@ else
 
     private Features.Energias.EnergiaDto? _energia;
     private bool _notFound;
+    private bool _isDeleting;
+    private string? _errorMessage;
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
@@ -66,15 +102,25 @@ else
 
     private async Task HandleDeleteAsync()
     {
+        _isDeleting = true;
         try
         {
             await Mediator.Send(new DeleteEnergiaCommand(Codigo));
+            Snackbar.Add("Registro de energia excluído com sucesso.", Severity.Success);
             NavigationManager.NavigateTo("/energias");
         }
         catch (NotFoundException)
         {
             _notFound = true;
             _energia = null;
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível excluir o registro agora. Tente novamente em instantes.";
+        }
+        finally
+        {
+            _isDeleting = false;
         }
     }
 }

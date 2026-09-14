@@ -8,6 +8,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,8 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddDbContext<CompenseAgoraDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("CompenseAgoraDb")));
+
+builder.Services.AddMudServices();
 
 var applicationAssembly = Assembly.GetExecutingAssembly();
 

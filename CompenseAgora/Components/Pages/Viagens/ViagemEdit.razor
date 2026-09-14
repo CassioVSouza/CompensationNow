@@ -12,34 +12,47 @@
 @using MediatR
 @inject IMediator Mediator
 @inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
 
-<PageTitle>Edit trip</PageTitle>
+<PageTitle>Editar viagem</PageTitle>
 
-<h1>Edit trip</h1>
-
-@if (_errorMessage is not null)
-{
-    <div class="alert alert-danger" role="alert">@_errorMessage</div>
-}
+<MudText Typo="Typo.h4" Class="mb-4">Editar viagem</MudText>
 
 @if (_notFound)
 {
-    <p>This trip could not be found.</p>
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+        Esta viagem não foi encontrada. Ela pode já ter sido excluída.
+    </MudAlert>
+    <MudButton Class="mt-3" Variant="Variant.Text" Href="/viagens">Voltar para a lista</MudButton>
 }
 else if (_frotas is null || _combustiveis is null)
 {
-    <p><em>Loading...</em></p>
+    <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+        <span>Carregando viagem…</span>
+    </div>
 }
 else
 {
-    <EditForm Model="_input" OnValidSubmit="HandleSaveAsync">
-        <DataAnnotationsValidator />
+    <MudPaper Class="pa-4" Elevation="1" Style="max-width: 800px;">
+        @if (_errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+        }
 
-        <ViagemFormFields Model="_input" Frotas="_frotas" Combustiveis="_combustiveis" />
+        <ViagemFormFields Model="_input" Frotas="_frotas" Combustiveis="_combustiveis" OnChanged="HandleFieldChangedAsync" />
 
-        <button type="submit" class="btn btn-primary mt-3">Save</button>
-        <a class="btn btn-link mt-3" href="/viagens">Cancel</a>
-    </EditForm>
+        <div class="d-flex gap-2 mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSaveAsync" Disabled="@_isSaving">
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Salvar
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/viagens" Disabled="@_isSaving">Cancelar</MudButton>
+        </div>
+    </MudPaper>
 }
 
 @code {
@@ -51,6 +64,7 @@ else
     private List<CombustivelDto>? _combustiveis;
     private string? _errorMessage;
     private bool _notFound;
+    private bool _isSaving;
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
@@ -82,6 +96,16 @@ else
         _combustiveis = await Mediator.Send(new GetCombustiveisQuery());
     }
 
+    private Task HandleFieldChangedAsync()
+    {
+        if (_errorMessage is not null)
+        {
+            _errorMessage = null;
+        }
+
+        return Task.CompletedTask;
+    }
+
     private async Task HandleSaveAsync()
     {
         _errorMessage = ViagemCreate.ValidateForMode(_input);
@@ -99,9 +123,11 @@ else
             _input.TipoRegistro == TipoRegistroViagem.PorCombustivel ? 0 : _input.AnoFrota,
             _input.TipoRegistro == TipoRegistroViagem.PorDistancia ? _input.DistanciaKM : 0);
 
+        _isSaving = true;
         try
         {
             await Mediator.Send(command);
+            Snackbar.Add("Viagem atualizada com sucesso.", Severity.Success);
             NavigationManager.NavigateTo("/viagens");
         }
         catch (NotFoundException)
@@ -111,6 +137,14 @@ else
         catch (FluentValidation.ValidationException ex)
         {
             _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível salvar as alterações agora. Tente novamente em instantes.";
+        }
+        finally
+        {
+            _isSaving = false;
         }
     }
 

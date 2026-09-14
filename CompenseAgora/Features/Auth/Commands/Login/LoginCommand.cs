@@ -15,8 +15,9 @@ public class LoginCommandValidator : AbstractValidator<LoginCommand>
 {
     public LoginCommandValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress();
-        RuleFor(x => x.Password).NotEmpty();
+        RuleFor(x => x.Email).NotEmpty().WithMessage("E-mail é obrigatório.")
+            .EmailAddress().WithMessage("E-mail inválido.");
+        RuleFor(x => x.Password).NotEmpty().WithMessage("Senha é obrigatória.");
     }
 }
 
@@ -31,7 +32,7 @@ public class LoginCommandHandler(CognitoAuthService cognitoAuth, CompenseAgoraDb
         var pessoa = await dbContext.Pessoas
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Email == request.Email, cancellationToken)
-            ?? throw new AuthException("Your credentials are valid, but no profile was found for this account. Please contact support.");
+            ?? throw new AuthException("Suas credenciais são válidas, mas nenhum perfil foi encontrado para esta conta. Entre em contato com o suporte.");
 
         return new LoginResult(pessoa.Codigo, pessoa.Nome, pessoa.Sobrenome, pessoa.Email, pessoa.CognitoSub);
     }

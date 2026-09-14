@@ -14,6 +14,7 @@ public class GetCombustiveisQueryHandler(CompenseAgoraDbContext dbContext)
         return dbContext.Combustiveis
             .AsNoTracking()
             .OrderBy(c => c.Nome)
+            .Where(c => !c.CombustivelPrincipal)
             .Select(c => new CombustivelDto(c.Codigo, c.Nome, c.UnidadeMedida))
             .ToListAsync(cancellationToken);
     }

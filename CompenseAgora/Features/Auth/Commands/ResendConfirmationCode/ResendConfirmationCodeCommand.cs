@@ -10,7 +10,8 @@ public class ResendConfirmationCodeCommandValidator : AbstractValidator<ResendCo
 {
     public ResendConfirmationCodeCommandValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress();
+        RuleFor(x => x.Email).NotEmpty().WithMessage("E-mail é obrigatório.")
+            .EmailAddress().WithMessage("E-mail inválido.");
     }
 }
 

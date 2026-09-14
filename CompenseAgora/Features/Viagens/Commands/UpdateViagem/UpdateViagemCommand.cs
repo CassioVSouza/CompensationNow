@@ -19,13 +19,14 @@ public class UpdateViagemCommandValidator : AbstractValidator<UpdateViagemComman
 {
     public UpdateViagemCommandValidator()
     {
-        RuleFor(x => x.Codigo).GreaterThan(0);
-        RuleFor(x => x.CodigoFrota).GreaterThan(0);
-        RuleFor(x => x.CodigoCombustivel).GreaterThan(0).When(x => x.CodigoCombustivel is not null);
-        RuleFor(x => x.DataReferencia).NotEqual(default(DateOnly));
-        RuleFor(x => x.Consumo).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.AnoFrota).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.DistanciaKM).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.Codigo).GreaterThan(0).WithMessage("Código deve ser maior que zero.");
+        RuleFor(x => x.CodigoFrota).GreaterThan(0).WithMessage("Frota é obrigatória.");
+        RuleFor(x => x.CodigoCombustivel).GreaterThan(0).When(x => x.CodigoCombustivel is not null)
+            .WithMessage("Combustível inválido.");
+        RuleFor(x => x.DataReferencia).NotEqual(default(DateOnly)).WithMessage("Data de referência é obrigatória.");
+        RuleFor(x => x.Consumo).GreaterThanOrEqualTo(0).WithMessage("Consumo deve ser maior ou igual a zero.");
+        RuleFor(x => x.AnoFrota).GreaterThanOrEqualTo(0).WithMessage("Ano da frota deve ser maior ou igual a zero.");
+        RuleFor(x => x.DistanciaKM).GreaterThanOrEqualTo(0).WithMessage("Distância (KM) deve ser maior ou igual a zero.");
     }
 }
 

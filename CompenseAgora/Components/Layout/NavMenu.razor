@@ -1,47 +1,45 @@
-﻿@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">CompenseAgora</a>
-    </div>
+@* Deliberately static SSR (no @rendermode): the logout form below mutates the
+   auth cookie via HttpContext.SignOutAsync, which only works reliably during
+   a real HTTP request/response, not an interactive SignalR circuit. The Mud
+   components used here (MudNavMenu/MudNavLink/MudButton) render as plain
+   anchors/buttons that work without a circuit -- ripple/JS-interop flourishes
+   are cosmetic extras that simply no-op here, per project convention. *@
+
+<div class="nav-brand-row">
+    <MudText Typo="Typo.h6" Class="nav-brand">CompenseAgora</MudText>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<input type="checkbox" title="Menu de navegação" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-
+    <MudNavMenu Class="px-2 py-3" Color="Color.Info">
         <AuthorizeView Context="authState">
             <Authorized>
-                <div class="nav-item px-3">
-                    <span class="nav-link">Hi, @authState.User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value</span>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="viagens" Match="NavLinkMatch.All">
-                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Trips
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="energias">
-                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Energy
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <EditForm Model="_logoutModel" FormName="logout" OnSubmit="HandleLogoutAsync" method="post">
-                        <button type="submit" class="nav-link btn btn-link">Log out</button>
-                    </EditForm>
-                </div>
+                <MudText Typo="Typo.body2" Class="nav-greeting px-4 pb-2">
+                    Olá, @authState.User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value
+                </MudText>
+
+                <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Painel</MudNavLink>
+                <MudNavLink Href="viagens" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.DirectionsCar">Viagens</MudNavLink>
+                <MudNavLink Href="energias" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Bolt">Energia</MudNavLink>
+
+                <MudDivider Class="my-3 mx-4" />
+
+                <EditForm Model="_logoutModel" FormName="logout" OnSubmit="HandleLogoutAsync" method="post" class="px-4">
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Text" FullWidth="true"
+                               StartIcon="@Icons.Material.Filled.Logout" Class="logout-button">
+                        Sair
+                    </MudButton>
+                </EditForm>
             </Authorized>
             <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="login">Log in</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="register">Register</NavLink>
-                </div>
+                <MudNavLink Href="login" Icon="@Icons.Material.Filled.Login">Entrar</MudNavLink>
+                <MudNavLink Href="register" Icon="@Icons.Material.Filled.PersonAdd">Cadastrar</MudNavLink>
             </NotAuthorized>
         </AuthorizeView>
-    </nav>
+    </MudNavMenu>
 </div>
 
 @code {
@@ -56,4 +54,3 @@
         HttpContext.Response.Redirect("/");
     }
 }
-

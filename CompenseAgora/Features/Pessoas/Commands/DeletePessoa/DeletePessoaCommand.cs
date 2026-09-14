@@ -12,7 +12,7 @@ public class DeletePessoaCommandValidator : AbstractValidator<DeletePessoaComman
 {
     public DeletePessoaCommandValidator()
     {
-        RuleFor(x => x.Codigo).GreaterThan(0);
+        RuleFor(x => x.Codigo).GreaterThan(0).WithMessage("Código deve ser maior que zero.");
     }
 }
 

@@ -10,8 +10,9 @@ public class ConfirmEmailCommandValidator : AbstractValidator<ConfirmEmailComman
 {
     public ConfirmEmailCommandValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress();
-        RuleFor(x => x.Code).NotEmpty();
+        RuleFor(x => x.Email).NotEmpty().WithMessage("E-mail é obrigatório.")
+            .EmailAddress().WithMessage("E-mail inválido.");
+        RuleFor(x => x.Code).NotEmpty().WithMessage("Código de confirmação é obrigatório.");
     }
 }
 

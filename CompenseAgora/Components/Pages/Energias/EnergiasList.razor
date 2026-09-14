@@ -1,56 +1,78 @@
 @page "/energias"
 @attribute [Authorize]
-@attribute [StreamRendering]
+@rendermode InteractiveServer
 @using System.Security.Claims
 @using CompenseAgora.Features.Energias.Queries.GetEnergias
 @using MediatR
 @inject IMediator Mediator
 
-<PageTitle>Energy</PageTitle>
+<PageTitle>Energia</PageTitle>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1>Energy</h1>
-    <a class="btn btn-primary" href="/energias/nova">New energy record</a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <MudText Typo="Typo.h4">Energia</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/energias/nova">
+        Novo registro de energia
+    </MudButton>
 </div>
 
 @if (_energias is null)
 {
-    <p><em>Loading...</em></p>
+    <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+        <span>Carregando registros de energia…</span>
+    </div>
 }
 else if (_energias.Count == 0)
 {
-    <p>No energy records registered yet. Click "New energy record" to add one.</p>
+    <MudPaper Class="pa-6 d-flex flex-column align-items-center text-center" Elevation="0" Outlined="true">
+        <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
+        <MudText Typo="Typo.h6" Class="mb-1">Nenhum registro de energia cadastrado ainda</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
+            Adicione seu primeiro registro de energia para começar a acompanhar suas emissões.
+        </MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/energias/nova">
+            Novo registro de energia
+        </MudButton>
+    </MudPaper>
 }
 else
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Reference date</th>
-                <th>Quantity</th>
-                <th>CO2 emission</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var energia in _energias)
-            {
-                <tr>
-                    <td>@energia.DataReferencia.ToString("dd/MM/yyyy")</td>
-                    <td>@energia.Quantidade.ToString("N2")</td>
-                    <td>@energia.EmissaoCO2.ToString("N2")</td>
-                    <td class="text-nowrap">
-                        <a class="btn btn-sm btn-outline-secondary" href="/energias/@energia.Codigo/editar">Edit</a>
-                        <a class="btn btn-sm btn-outline-danger" href="/energias/@energia.Codigo/excluir">Delete</a>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudToolBar Class="px-2" WrapContent="true">
+            <MudTextField T="string" ValueChanged="@((string s) => _searchString = s)" Value="_searchString"
+                          Placeholder="Buscar por data, quantidade ou emissão..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" Class="mt-0" Clearable="true" />
+        </MudToolBar>
+
+        <MudTable Items="_energias" Hover="true" Striped="true" Filter="FilterFunc" Dense="false" SortLabel="Ordenar por">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<Features.Energias.EnergiaDto, object>(x => x.DataReferencia)">Data de referência</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<Features.Energias.EnergiaDto, object>(x => x.Quantidade)">Quantidade</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<Features.Energias.EnergiaDto, object>(x => x.EmissaoCO2)">Emissão de CO2</MudTableSortLabel></MudTh>
+                <MudTh Style="width: 1%;"></MudTh>
+            </HeaderContent>
+            <RowTemplate Context="row">
+                @{ var energia = row!; }
+                <MudTd DataLabel="Data de referência">@energia.DataReferencia.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd DataLabel="Quantidade">@energia.Quantidade.ToString("N2") kWh</MudTd>
+                <MudTd DataLabel="Emissão de CO2">@energia.EmissaoCO2.ToString("N2") kg</MudTd>
+                <MudTd DataLabel="Ações" Class="text-nowrap">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                                   Href="@($"/energias/{energia.Codigo}/editar")" title="Editar registro" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   Href="@($"/energias/{energia.Codigo}/excluir")" title="Excluir registro" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager RowsPerPageString="Linhas por página" InfoFormat="{first_item}-{last_item} de {all_items}" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
 }
 
 @code {
     private List<Features.Energias.EnergiaDto>? _energias;
+    private string _searchString = string.Empty;
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
@@ -61,5 +83,22 @@ else
         var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         _energias = await Mediator.Send(new GetEnergiasQuery(codigoPessoa));
+    }
+
+    private bool FilterFunc(Features.Energias.EnergiaDto? energia)
+    {
+        if (energia is null)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(_searchString))
+        {
+            return true;
+        }
+
+        return energia.DataReferencia.ToString("dd/MM/yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || energia.Quantidade.ToString("N2").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || energia.EmissaoCO2.ToString("N2").Contains(_searchString, StringComparison.OrdinalIgnoreCase);
     }
 }

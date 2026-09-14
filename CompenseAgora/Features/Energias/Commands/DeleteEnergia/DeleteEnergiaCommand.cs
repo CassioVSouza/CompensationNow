@@ -12,7 +12,7 @@ public class DeleteEnergiaCommandValidator : AbstractValidator<DeleteEnergiaComm
 {
     public DeleteEnergiaCommandValidator()
     {
-        RuleFor(x => x.Codigo).GreaterThan(0);
+        RuleFor(x => x.Codigo).GreaterThan(0).WithMessage("Código deve ser maior que zero.");
     }
 }
 

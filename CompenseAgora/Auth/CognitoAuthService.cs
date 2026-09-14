@@ -34,11 +34,11 @@ public class CognitoAuthService(IAmazonCognitoIdentityProvider cognito, IOptions
         }
         catch (UsernameExistsException)
         {
-            throw new AuthException("An account with this email already exists.");
+            throw new AuthException("Já existe uma conta cadastrada com este e-mail.");
         }
         catch (InvalidPasswordException ex)
         {
-            throw new AuthException($"Password does not meet requirements: {ex.Message}");
+            throw new AuthException($"A senha não atende aos requisitos: {ex.Message}");
         }
         catch (AmazonCognitoIdentityProviderException ex)
         {
@@ -62,11 +62,11 @@ public class CognitoAuthService(IAmazonCognitoIdentityProvider cognito, IOptions
         }
         catch (CodeMismatchException)
         {
-            throw new AuthException("Invalid confirmation code.");
+            throw new AuthException("Código de confirmação inválido.");
         }
         catch (ExpiredCodeException)
         {
-            throw new AuthException("Confirmation code expired. Request a new one.");
+            throw new AuthException("Código de confirmação expirado. Solicite um novo.");
         }
         catch (AmazonCognitoIdentityProviderException ex)
         {
@@ -118,7 +118,7 @@ public class CognitoAuthService(IAmazonCognitoIdentityProvider cognito, IOptions
 
             if (response.AuthenticationResult is null)
             {
-                throw new AuthException($"Additional sign-in step required: {response.ChallengeName}.");
+                throw new AuthException($"Etapa adicional de login necessária: {response.ChallengeName}.");
             }
 
             return new CognitoAuthResult(
@@ -128,15 +128,15 @@ public class CognitoAuthService(IAmazonCognitoIdentityProvider cognito, IOptions
         }
         catch (UserNotConfirmedException)
         {
-            throw new AuthException("Please confirm your email before signing in.");
+            throw new AuthException("Confirme seu e-mail antes de entrar.");
         }
         catch (NotAuthorizedException)
         {
-            throw new AuthException("Invalid email or password.");
+            throw new AuthException("E-mail ou senha inválidos.");
         }
         catch (UserNotFoundException)
         {
-            throw new AuthException("Invalid email or password.");
+            throw new AuthException("E-mail ou senha inválidos.");
         }
         catch (AmazonCognitoIdentityProviderException ex)
         {

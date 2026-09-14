@@ -14,9 +14,9 @@ public class CreateEnergiaCommandValidator : AbstractValidator<CreateEnergiaComm
 {
     public CreateEnergiaCommandValidator()
     {
-        RuleFor(x => x.CodigoPessoa).GreaterThan(0);
-        RuleFor(x => x.DataReferencia).NotEqual(default(DateOnly));
-        RuleFor(x => x.Quantidade).GreaterThan(0);
+        RuleFor(x => x.CodigoPessoa).GreaterThan(0).WithMessage("Pessoa é obrigatória.");
+        RuleFor(x => x.DataReferencia).NotEqual(default(DateOnly)).WithMessage("Data de referência é obrigatória.");
+        RuleFor(x => x.Quantidade).GreaterThan(0).WithMessage("Quantidade deve ser maior que zero.");
     }
 }
 

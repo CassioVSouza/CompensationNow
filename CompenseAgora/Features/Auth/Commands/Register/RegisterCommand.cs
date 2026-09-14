@@ -25,24 +25,28 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
 {
     public RegisterCommandValidator()
     {
-        RuleFor(x => x.Nome).NotEmpty().MaximumLength(150);
-        RuleFor(x => x.Sobrenome).NotEmpty().MaximumLength(150);
-        RuleFor(x => x.Email).NotEmpty().MaximumLength(320).EmailAddress();
+        RuleFor(x => x.Nome).NotEmpty().WithMessage("Nome é obrigatório.")
+            .MaximumLength(150).WithMessage("Nome deve ter no máximo 150 caracteres.");
+        RuleFor(x => x.Sobrenome).NotEmpty().WithMessage("Sobrenome é obrigatório.")
+            .MaximumLength(150).WithMessage("Sobrenome deve ter no máximo 150 caracteres.");
+        RuleFor(x => x.Email).NotEmpty().WithMessage("E-mail é obrigatório.")
+            .MaximumLength(320).WithMessage("E-mail deve ter no máximo 320 caracteres.")
+            .EmailAddress().WithMessage("E-mail inválido.");
         // Mirrors Cognito's default password policy; adjust if the User Pool's policy differs.
         RuleFor(x => x.Password)
-            .NotEmpty()
-            .MinimumLength(8)
-            .Matches("[A-Z]").WithMessage("Senha preciso conter pelo menos uma letra em maiúsculo.")
-            .Matches("[a-z]").WithMessage("Senha preciso conter pelo menos uma letra em minúsculo.")
-            .Matches("[0-9]").WithMessage("Senha precisa conter pelo menos um número.")
-            .Matches(@"[\^$*.\[\]{}()?\-""!@#%&/\\,><':;|_~`+=]").WithMessage("Senha precisa conter pelo menos um caractér especial.");
-        RuleFor(x => x.Endereco).MaximumLength(250);
-        RuleFor(x => x.Bairro).MaximumLength(150);
-        RuleFor(x => x.Numero).MaximumLength(20);
-        RuleFor(x => x.Cidade).MaximumLength(150);
-        RuleFor(x => x.Estado).MaximumLength(100);
-        RuleFor(x => x.Pais).MaximumLength(100);
-        RuleFor(x => x.Celular).MaximumLength(20);
+            .NotEmpty().WithMessage("Senha é obrigatória.")
+            .MinimumLength(8).WithMessage("A senha deve ter no mínimo 8 caracteres.")
+            .Matches("[A-Z]").WithMessage("A senha precisa conter pelo menos uma letra maiúscula.")
+            .Matches("[a-z]").WithMessage("A senha precisa conter pelo menos uma letra minúscula.")
+            .Matches("[0-9]").WithMessage("A senha precisa conter pelo menos um número.")
+            .Matches(@"[\^$*.\[\]{}()?\-""!@#%&/\\,><':;|_~`+=]").WithMessage("A senha precisa conter pelo menos um caractere especial.");
+        RuleFor(x => x.Endereco).MaximumLength(250).WithMessage("Endereço deve ter no máximo 250 caracteres.");
+        RuleFor(x => x.Bairro).MaximumLength(150).WithMessage("Bairro deve ter no máximo 150 caracteres.");
+        RuleFor(x => x.Numero).MaximumLength(20).WithMessage("Número deve ter no máximo 20 caracteres.");
+        RuleFor(x => x.Cidade).MaximumLength(150).WithMessage("Cidade deve ter no máximo 150 caracteres.");
+        RuleFor(x => x.Estado).MaximumLength(100).WithMessage("Estado deve ter no máximo 100 caracteres.");
+        RuleFor(x => x.Pais).MaximumLength(100).WithMessage("País deve ter no máximo 100 caracteres.");
+        RuleFor(x => x.Celular).MaximumLength(20).WithMessage("Celular deve ter no máximo 20 caracteres.");
     }
 }
 

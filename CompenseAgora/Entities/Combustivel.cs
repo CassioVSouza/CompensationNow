@@ -5,6 +5,7 @@ public class Combustivel
     public int Codigo { get; set; }
     public string Nome { get; set; } = string.Empty;
     public string UnidadeMedida { get; set; } = string.Empty;
+    public bool CombustivelPrincipal { get; set; }
 
     public int? CodigoCombustivelBiogenico { get; set; }
     public Combustivel? CombustivelBiogenico { get; set; }

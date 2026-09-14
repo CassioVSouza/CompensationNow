@@ -1,64 +1,88 @@
 @page "/viagens"
 @attribute [Authorize]
-@attribute [StreamRendering]
+@rendermode InteractiveServer
 @using System.Security.Claims
 @using CompenseAgora.Features.Viagens.Queries.GetViagens
 @using MediatR
 @inject IMediator Mediator
 
-<PageTitle>Trips</PageTitle>
+<PageTitle>Viagens</PageTitle>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1>Trips</h1>
-    <a class="btn btn-primary" href="/viagens/nova">New trip</a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <MudText Typo="Typo.h4">Viagens</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/viagens/nova">
+        Nova viagem
+    </MudButton>
 </div>
 
 @if (_viagens is null)
 {
-    <p><em>Loading...</em></p>
+    <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+        <span>Carregando viagens…</span>
+    </div>
 }
 else if (_viagens.Count == 0)
 {
-    <p>No trips registered yet. Click "New trip" to add one.</p>
+    <MudPaper Class="pa-6 d-flex flex-column align-items-center text-center" Elevation="0" Outlined="true">
+        <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
+        <MudText Typo="Typo.h6" Class="mb-1">Nenhuma viagem cadastrada ainda</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
+            Adicione sua primeira viagem para começar a acompanhar suas emissões.
+        </MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/viagens/nova">
+            Nova viagem
+        </MudButton>
+    </MudPaper>
 }
 else
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Reference date</th>
-                <th>Vehicle</th>
-                <th>Fuel</th>
-                <th>Fleet year</th>
-                <th>Consumption</th>
-                <th>Distance (km)</th>
-                <th>CO2 emission</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var viagem in _viagens)
-            {
-                <tr>
-                    <td>@viagem.DataReferencia.ToString("dd/MM/yyyy")</td>
-                    <td>@viagem.FrotaNome</td>
-                    <td>@(viagem.CombustivelNome ?? "-")</td>
-                    <td>@(viagem.AnoFrota == 0 ? "-" : viagem.AnoFrota.ToString())</td>
-                    <td>@(viagem.Consumo == 0 ? "-" : viagem.Consumo.ToString("N2"))</td>
-                    <td>@(viagem.DistanciaKM == 0 ? "-" : viagem.DistanciaKM.ToString("N2"))</td>
-                    <td>@viagem.EmissaoCO2.ToString("N2")</td>
-                    <td class="text-nowrap">
-                        <a class="btn btn-sm btn-outline-secondary" href="/viagens/@viagem.Codigo/editar">Edit</a>
-                        <a class="btn btn-sm btn-outline-danger" href="/viagens/@viagem.Codigo/excluir">Delete</a>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudToolBar Class="px-2" WrapContent="true">
+            <MudTextField T="string" ValueChanged="@((string s) => _searchString = s)" Value="_searchString"
+                          Placeholder="Buscar por veículo ou combustível..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" Class="mt-0" Clearable="true" />
+        </MudToolBar>
+
+        <MudTable Items="_viagens" Hover="true" Striped="true" Filter="FilterFunc" Dense="false"
+                  SortLabel="Ordenar por" @bind-SelectedItem="_selected">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<Features.Viagens.ViagemDto, object>(x => x.DataReferencia)">Data de referência</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<Features.Viagens.ViagemDto, object>(x => x.FrotaNome)">Veículo</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<Features.Viagens.ViagemDto, object>(x => x.CombustivelNome ?? string.Empty)">Combustível</MudTableSortLabel></MudTh>
+                <MudTh>Ano da frota</MudTh>
+                <MudTh>Consumo</MudTh>
+                <MudTh>Distância (km)</MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<Features.Viagens.ViagemDto, object>(x => x.EmissaoCO2)">Emissão de CO2</MudTableSortLabel></MudTh>
+                <MudTh Style="width: 1%;"></MudTh>
+            </HeaderContent>
+            <RowTemplate Context="row">
+                @{ var viagem = row!; }
+                <MudTd DataLabel="Data de referência">@viagem.DataReferencia.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd DataLabel="Veículo">@viagem.FrotaNome</MudTd>
+                <MudTd DataLabel="Combustível">@(viagem.CombustivelNome ?? "-")</MudTd>
+                <MudTd DataLabel="Ano da frota">@(viagem.AnoFrota == 0 ? "-" : viagem.AnoFrota.ToString())</MudTd>
+                <MudTd DataLabel="Consumo">@(viagem.Consumo == 0 ? "-" : viagem.Consumo.ToString("N2"))</MudTd>
+                <MudTd DataLabel="Distância (km)">@(viagem.DistanciaKM == 0 ? "-" : viagem.DistanciaKM.ToString("N2"))</MudTd>
+                <MudTd DataLabel="Emissão de CO2">@viagem.EmissaoCO2.ToString("N2") kg</MudTd>
+                <MudTd DataLabel="Ações" Class="text-nowrap">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                                   Href="@($"/viagens/{viagem.Codigo}/editar")" title="Editar viagem" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   Href="@($"/viagens/{viagem.Codigo}/excluir")" title="Excluir viagem" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager RowsPerPageString="Linhas por página" InfoFormat="{first_item}-{last_item} de {all_items}" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
 }
 
 @code {
     private List<Features.Viagens.ViagemDto>? _viagens;
+    private Features.Viagens.ViagemDto? _selected;
+    private string _searchString = string.Empty;
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
@@ -69,5 +93,21 @@ else
         var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         _viagens = await Mediator.Send(new GetViagensQuery(codigoPessoa));
+    }
+
+    private bool FilterFunc(Features.Viagens.ViagemDto? viagem)
+    {
+        if (viagem is null)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(_searchString))
+        {
+            return true;
+        }
+
+        return viagem.FrotaNome.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || (viagem.CombustivelNome?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false);
     }
 }

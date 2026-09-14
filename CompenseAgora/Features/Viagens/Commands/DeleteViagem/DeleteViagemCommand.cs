@@ -12,7 +12,7 @@ public class DeleteViagemCommandValidator : AbstractValidator<DeleteViagemComman
 {
     public DeleteViagemCommandValidator()
     {
-        RuleFor(x => x.Codigo).GreaterThan(0);
+        RuleFor(x => x.Codigo).GreaterThan(0).WithMessage("Código deve ser maior que zero.");
     }
 }
 

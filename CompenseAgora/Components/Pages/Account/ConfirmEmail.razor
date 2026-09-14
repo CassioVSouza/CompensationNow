@@ -6,11 +6,11 @@
 @inject IMediator Mediator
 @inject NavigationManager NavigationManager
 
-<PageTitle>Confirm email</PageTitle>
+<PageTitle>Confirmar e-mail</PageTitle>
 
-<h1>Confirm your email</h1>
+<h1>Confirme seu e-mail</h1>
 
-<p>We sent a confirmation code to <strong>@Input.Email</strong>. Enter it below to activate your account.</p>
+<p>Enviamos um código de confirmação para <strong>@Input.Email</strong>. Digite-o abaixo para ativar sua conta.</p>
 
 @if (_errorMessage is not null)
 {
@@ -24,19 +24,19 @@
 
 <EditForm Model="Input" FormName="confirm-email" OnSubmit="HandleConfirmAsync" method="post">
     <div class="mb-3">
-        <label class="form-label">Email</label>
+        <label class="form-label">E-mail</label>
         <InputText class="form-control" type="email" @bind-Value="Input.Email" />
     </div>
     <div class="mb-3">
-        <label class="form-label">Confirmation code</label>
+        <label class="form-label">Código de confirmação</label>
         <InputText class="form-control" @bind-Value="Input.Code" />
     </div>
-    <button type="submit" class="btn btn-primary">Confirm</button>
+    <button type="submit" class="btn btn-primary">Confirmar</button>
 </EditForm>
 
 <EditForm Model="ResendInput" FormName="resend-code" OnSubmit="HandleResendAsync" method="post" class="mt-2">
     <InputText style="display:none" @bind-Value="ResendInput.Email" />
-    <button type="submit" class="btn btn-link p-0">Resend code</button>
+    <button type="submit" class="btn btn-link p-0">Reenviar código</button>
 </EditForm>
 
 @code {
@@ -98,7 +98,7 @@
         try
         {
             await Mediator.Send(new ResendConfirmationCodeCommand(ResendInput.Email));
-            _infoMessage = "A new confirmation code has been sent.";
+            _infoMessage = "Um novo código de confirmação foi enviado.";
         }
         catch (AuthException ex)
         {
