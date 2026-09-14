@@ -4,7 +4,7 @@ public class Pessoa
 {
     public int Codigo { get; set; }
     public string Nome { get; set; } = string.Empty;
-    public string? Sobrenome { get; set; }
+    public string Sobrenome { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string CognitoSub { get; set; } = string.Empty;
     public string? Endereco { get; set; }

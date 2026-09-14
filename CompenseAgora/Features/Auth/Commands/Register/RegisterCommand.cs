@@ -11,13 +11,13 @@ public record RegisterCommand(
     string Sobrenome,
     string Email,
     string Password,
-    string Endereco,
-    string Bairro,
-    string Numero,
-    string Cidade,
-    string Estado,
-    string Pais,
-    string Celular) : IRequest<RegisterResult>;
+    string? Endereco,
+    string? Bairro,
+    string? Numero,
+    string? Cidade,
+    string? Estado,
+    string? Pais,
+    string? Celular) : IRequest<RegisterResult>;
 
 public record RegisterResult(int Codigo, bool RequiresConfirmation);
 
@@ -32,17 +32,17 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
         RuleFor(x => x.Password)
             .NotEmpty()
             .MinimumLength(8)
-            .Matches("[A-Z]").WithMessage("Password must contain at least one uppercase letter.")
-            .Matches("[a-z]").WithMessage("Password must contain at least one lowercase letter.")
-            .Matches("[0-9]").WithMessage("Password must contain at least one digit.")
-            .Matches(@"[\^$*.\[\]{}()?\-""!@#%&/\\,><':;|_~`+=]").WithMessage("Password must contain at least one special character.");
-        RuleFor(x => x.Endereco).NotEmpty().MaximumLength(250);
-        RuleFor(x => x.Bairro).NotEmpty().MaximumLength(150);
-        RuleFor(x => x.Numero).NotEmpty().MaximumLength(20);
-        RuleFor(x => x.Cidade).NotEmpty().MaximumLength(150);
-        RuleFor(x => x.Estado).NotEmpty().MaximumLength(100);
-        RuleFor(x => x.Pais).NotEmpty().MaximumLength(100);
-        RuleFor(x => x.Celular).NotEmpty().MaximumLength(20);
+            .Matches("[A-Z]").WithMessage("Senha preciso conter pelo menos uma letra em maiúsculo.")
+            .Matches("[a-z]").WithMessage("Senha preciso conter pelo menos uma letra em minúsculo.")
+            .Matches("[0-9]").WithMessage("Senha precisa conter pelo menos um número.")
+            .Matches(@"[\^$*.\[\]{}()?\-""!@#%&/\\,><':;|_~`+=]").WithMessage("Senha precisa conter pelo menos um caractér especial.");
+        RuleFor(x => x.Endereco).MaximumLength(250);
+        RuleFor(x => x.Bairro).MaximumLength(150);
+        RuleFor(x => x.Numero).MaximumLength(20);
+        RuleFor(x => x.Cidade).MaximumLength(150);
+        RuleFor(x => x.Estado).MaximumLength(100);
+        RuleFor(x => x.Pais).MaximumLength(100);
+        RuleFor(x => x.Celular).MaximumLength(20);
     }
 }
 
