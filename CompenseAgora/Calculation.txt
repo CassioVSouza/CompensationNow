@@ -1,0 +1,101 @@
+        private async Task<CompraEnergiaEntity> CalcularCO2EmitidoAsync(CompraEnergiaEntity energia, ETipoReferencia referencia)
+        {
+            try
+            {
+                if (referencia == ETipoReferencia.MesAno)
+                {
+                    var feSIN = await GetFesinAsync((DateTime)energia.MesAno!, false);
+                    if (feSIN == null)
+                    {
+                        feSIN = await GetApproximateFesinAsync((DateTime)energia.MesAno!, false);
+                    }
+                    if (feSIN != null)
+                    {
+                        energia.EmissaoCO2 = energia.Quantidade * feSIN.feSIN;
+                    }
+                }
+                else
+                {
+                    var feSIN = await GetFesinAsync((DateTime)energia.MesAno!, true);
+                    if (feSIN == null)
+                    {
+                        feSIN = await GetApproximateFesinAsync((DateTime)energia.MesAno!, true);
+                    }
+                    if (feSIN != null)
+                    {
+                        energia.EmissaoCO2 = energia.Quantidade * feSIN.feSIN;
+                    }
+                }
+                return energia;
+            }
+            catch (Exception ex)
+            {
+                _systemLog.EnviarLog("Erro em EnergiaService, funcao CalcularCO2Emitido: " + ex.Message);
+                return energia;
+            }
+        }
+
+        private async Task<FatoresEnergiaEletricaEntity> GetApproximateFesinAsync(DateTime date, bool isAnual)
+        {
+            try
+            {
+                var fesins = await _data.RetornarObjetosAsync<FatoresEnergiaEletricaEntity>(o => o.Codigo > 0);
+
+                if (fesins == null || fesins.Count == 0)
+                    throw new Exception();
+
+                fesins = fesins.OrderBy(o => o.Ano).ToList();
+
+                if(date.Year > fesins.Last().Ano)
+                {
+                    var fesinLast = fesins.FirstOrDefault(o => o.Ano == fesins.Last().Ano && o.Mes == date.Month);
+                    if (!isAnual)
+                        return fesinLast!;
+
+                    var fesinAverage = fesins.Where(o => o.Ano == fesins.Last().Ano).Sum(o => o.feSIN) / 12;
+
+                    fesinLast!.feSIN = fesinAverage;
+                    return fesinLast;
+                }
+
+                var fesinFirst = fesins.FirstOrDefault(o => o.Ano == fesins[0].Ano && o.Mes == date.Month);
+
+                if (!isAnual)
+                    return fesinFirst!;
+
+                var fesinAverageFirst = fesins.Where(o => o.Ano == fesins[0].Ano).Sum(o => o.feSIN) / 12;
+
+                fesinFirst!.feSIN = fesinAverageFirst;
+                return fesinFirst;
+            }
+            catch (Exception ex)
+            {
+                _systemLog.EnviarLog($"Erro em {nameof(EnergiaService)}, função {nameof(GetApproximateFesinAsync)}: {ex.Message}");
+                throw;
+            }
+        }
+
+        private async Task<FatoresEnergiaEletricaEntity?> GetFesinAsync(DateTime date, bool isAnual)
+        {
+            try
+            {
+                var fesins = await _data.RetornarObjetosAsync<FatoresEnergiaEletricaEntity>(o => o.Ano == date.Year);
+
+                if (fesins == null || fesins.Count == 0)
+                    return null;
+
+                if (!isAnual)
+                    return fesins.FirstOrDefault(o => o.Ano == date.Year && o.Mes == date.Month);
+
+                var fesinsAverage = fesins.Sum(o => o.feSIN);
+
+                fesins[0].feSIN = fesinsAverage;
+                
+                return fesins[0];
+            }
+            catch (Exception ex)
+            {
+                _systemLog.EnviarLog($"Erro em {nameof(EnergiaService)}, função {nameof(GetFesinAsync)}: {ex.Message}");
+                throw;
+            }
+        }

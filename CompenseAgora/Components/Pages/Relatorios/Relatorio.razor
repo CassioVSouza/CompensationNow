@@ -1,0 +1,253 @@
+@page "/relatorio"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using System.Globalization
+@using System.Security.Claims
+@using CompenseAgora.Features.Dashboard
+@using CompenseAgora.Features.Dashboard.Queries.GetDashboard
+@using CompenseAgora.Features.Viagens
+@using CompenseAgora.Features.Viagens.Queries.GetViagens
+@using CompenseAgora.Features.Energias
+@using CompenseAgora.Features.Energias.Queries.GetEnergias
+@using MediatR
+@inject IMediator Mediator
+@inject IJSRuntime JsRuntime
+
+<PageTitle>Relatório de emissões</PageTitle>
+
+<div class="d-flex justify-content-between align-items-start mb-3 no-print">
+    <div>
+        <h1 class="mb-1">Relatório de emissões</h1>
+        <p class="text-muted mb-0">Resumo completo das suas emissões de CO2e registradas na plataforma.</p>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download"
+               Disabled="@(_dashboard is null)" OnClick="BaixarRelatorioAsync">
+        Baixar relatório
+    </MudButton>
+</div>
+
+@if (_dashboard is null)
+{
+    <div class="d-flex align-items-center gap-3 py-5 no-print" role="status" aria-live="polite">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+        <span>Carregando seu relatório…</span>
+    </div>
+}
+else
+{
+    <div class="report-content">
+        <div class="report-header mb-4">
+            <MudText Typo="Typo.h5" Class="mb-1">@_nomeCompleto</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Período: @_periodoDescricao · Gerado em @DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm", CultureInfo.GetCultureInfo("pt-BR"))
+            </MudText>
+        </div>
+
+        <MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Sobre este relatório</MudText>
+            <MudText Typo="Typo.body2">
+                Este relatório consolida as emissões de dióxido de carbono equivalente (CO2e) registradas por você
+                na Compense Agora, com base nas suas viagens e no seu consumo de energia. Os valores são calculados
+                a partir dos fatores de emissão cadastrados para cada combustível e fonte de energia, e são
+                expressos em quilogramas de CO2 equivalente (kg CO2e). Use estes números para acompanhar sua
+                pegada de carbono ao longo do tempo e identificar oportunidades de redução ou compensação.
+            </MudText>
+        </MudPaper>
+
+        @if (_dashboard.TotalEmissao == 0)
+        {
+            <MudPaper Class="pa-6 d-flex flex-column align-items-center text-center" Elevation="0" Outlined="true">
+                <MudIcon Icon="@Icons.Material.Filled.Insights" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
+                <MudText Typo="Typo.h6" Class="mb-1">Nenhuma emissão registrada ainda</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Secondary">
+                    Adicione uma viagem ou um registro de energia para gerar seu relatório de emissões.
+                </MudText>
+            </MudPaper>
+        }
+        else
+        {
+            <MudGrid Class="mb-2">
+                <MudItem xs="12" sm="4">
+                    <MudPaper Class="pa-4" Elevation="1" Style="border-left: 4px solid #0b0b0b;">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Emissão total</MudText>
+                        <MudText Typo="Typo.h5">@FormatKg(_dashboard.TotalEmissao)</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudPaper Class="pa-4" Elevation="1" Style="@($"border-left: 4px solid {CompenseAgoraTheme.ChartSeriesColors[0]};")">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Emissão de viagens</MudText>
+                        <MudText Typo="Typo.h5">@FormatKg(_dashboard.TotalViagem)</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudPaper Class="pa-4" Elevation="1" Style="@($"border-left: 4px solid {CompenseAgoraTheme.ChartSeriesColors[1]};")">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Emissão de energia</MudText>
+                        <MudText Typo="Typo.h5">@FormatKg(_dashboard.TotalEnergia)</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <MudGrid Class="mb-4">
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4" Elevation="1">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">Emissão total, últimos 12 meses</MudText>
+                        <MudChart ChartType="ChartType.Line" ChartSeries="@_totalSeries" ChartLabels="@_monthLabels"
+                                  ChartOptions="@_lineOptions" Width="100%" Height="300px" />
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4" Elevation="1">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">Viagens vs. energia</MudText>
+                        <MudChart ChartType="ChartType.StackedBar" ChartSeries="@_splitSeries" ChartLabels="@_monthLabels"
+                                  ChartOptions="@_barOptions" Width="100%" Height="300px" />
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <MudText Typo="Typo.h6" Class="mb-2">Viagens registradas</MudText>
+            @if (_viagens.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Nenhuma viagem registrada.</MudText>
+            }
+            else
+            {
+                <MudTable Items="@_viagens" Dense="true" Hover="true" Class="mb-4" Elevation="1">
+                    <HeaderContent>
+                        <MudTh>Data</MudTh>
+                        <MudTh>Frota</MudTh>
+                        <MudTh>Combustível</MudTh>
+                        <MudTh>Distância (km)</MudTh>
+                        <MudTh>Consumo</MudTh>
+                        <MudTh>Emissão (kg CO2e)</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Data">@context.DataReferencia.ToString("dd/MM/yyyy")</MudTd>
+                        <MudTd DataLabel="Frota">@context.FrotaNome</MudTd>
+                        <MudTd DataLabel="Combustível">@(context.CombustivelNome ?? "—")</MudTd>
+                        <MudTd DataLabel="Distância (km)">@context.DistanciaKM.ToString("N2")</MudTd>
+                        <MudTd DataLabel="Consumo">@context.Consumo.ToString("N2")</MudTd>
+                        <MudTd DataLabel="Emissão (kg CO2e)">@context.EmissaoCO2.ToString("N2")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+
+            <MudText Typo="Typo.h6" Class="mb-2">Consumo de energia registrado</MudText>
+            @if (_energias.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Nenhum registro de energia.</MudText>
+            }
+            else
+            {
+                <MudTable Items="@_energias" Dense="true" Hover="true" Elevation="1">
+                    <HeaderContent>
+                        <MudTh>Data</MudTh>
+                        <MudTh>Quantidade</MudTh>
+                        <MudTh>Emissão (kg CO2e)</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Data">@context.DataReferencia.ToString("dd/MM/yyyy")</MudTd>
+                        <MudTd DataLabel="Quantidade">@context.Quantidade.ToString("N2")</MudTd>
+                        <MudTd DataLabel="Emissão (kg CO2e)">@context.EmissaoCO2.ToString("N2")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        }
+    </div>
+}
+
+@code {
+    private DashboardDto? _dashboard;
+    private List<ViagemDto> _viagens = [];
+    private List<EnergiaDto> _energias = [];
+    private string _nomeCompleto = string.Empty;
+    private string _periodoDescricao = string.Empty;
+    private string[] _monthLabels = [];
+    private List<ChartSeries<double>> _totalSeries = [];
+    private List<ChartSeries<double>> _splitSeries = [];
+    private LineChartOptions _lineOptions = new();
+    private StackedBarChartOptions _barOptions = new();
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateTask!;
+        var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var nome = authState.User.FindFirstValue(ClaimTypes.GivenName);
+        var sobrenome = authState.User.FindFirstValue(ClaimTypes.Surname);
+        _nomeCompleto = $"{nome} {sobrenome}".Trim();
+
+        _dashboard = await Mediator.Send(new GetDashboardQuery(codigoPessoa));
+        _viagens = await Mediator.Send(new GetViagensQuery(codigoPessoa));
+        _energias = await Mediator.Send(new GetEnergiasQuery(codigoPessoa));
+
+        _monthLabels = _dashboard.MonthlyEmissions
+            .Select(m => new DateTime(m.Year, m.Month, 1).ToString("MMM/yy", CultureInfo.InvariantCulture))
+            .ToArray();
+
+        if (_dashboard.MonthlyEmissions.Count > 0)
+        {
+            var primeiro = _dashboard.MonthlyEmissions[0];
+            var ultimo = _dashboard.MonthlyEmissions[^1];
+            var culturaPt = CultureInfo.GetCultureInfo("pt-BR");
+            _periodoDescricao =
+                $"{new DateTime(primeiro.Year, primeiro.Month, 1).ToString("MMMM/yyyy", culturaPt)} a " +
+                $"{new DateTime(ultimo.Year, ultimo.Month, 1).ToString("MMMM/yyyy", culturaPt)}";
+        }
+
+        _totalSeries =
+        [
+            new ChartSeries<double>
+            {
+                Name = "Emissão total",
+                Data = _dashboard.MonthlyEmissions.Select(m => (double)m.Total).ToArray(),
+                TooltipYValueFormat = "N2",
+            }
+        ];
+
+        _splitSeries =
+        [
+            new ChartSeries<double>
+            {
+                Name = "Viagens",
+                Data = _dashboard.MonthlyEmissions.Select(m => (double)m.ViagemEmissao).ToArray(),
+                TooltipYValueFormat = "N2",
+            },
+            new ChartSeries<double>
+            {
+                Name = "Energia",
+                Data = _dashboard.MonthlyEmissions.Select(m => (double)m.EnergiaEmissao).ToArray(),
+                TooltipYValueFormat = "N2",
+            }
+        ];
+
+        _lineOptions = new LineChartOptions
+        {
+            ChartPalette = [CompenseAgoraTheme.TrendColor],
+            ShowLegend = false,
+            ShowDataMarkers = true,
+            YAxisRequireZeroPoint = true,
+            YAxisTitle = "kg CO2e",
+            YAxisToStringFunc = v => v.ToString("N0"),
+            XAxisLabelRotation = -45,
+        };
+
+        _barOptions = new StackedBarChartOptions
+        {
+            ChartPalette = CompenseAgoraTheme.ChartSeriesColors,
+            ShowLegend = true,
+            ShowValues = false,
+            YAxisTitle = "kg CO2e",
+            YAxisToStringFunc = v => v.ToString("N0"),
+            XAxisLabelRotation = -45,
+        };
+    }
+
+    private async Task BaixarRelatorioAsync()
+    {
+        await JsRuntime.InvokeVoidAsync("window.print");
+    }
+
+    private static string FormatKg(decimal value) => $"{value.ToString("N2", CultureInfo.CurrentCulture)} kg CO2e";
+}

@@ -4,6 +4,8 @@ using CompenseAgora.Auth;
 using CompenseAgora.Common.Behaviors;
 using CompenseAgora.Components;
 using CompenseAgora.Data;
+using CompenseAgora.Features.Energias.Calculo;
+using CompenseAgora.Features.Viagens.Calculo;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -26,6 +28,8 @@ var applicationAssembly = Assembly.GetExecutingAssembly();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(applicationAssembly));
 builder.Services.AddValidatorsFromAssembly(applicationAssembly);
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+builder.Services.AddScoped<ICalculadoraEmissaoViagem, CalculadoraEmissaoViagem>();
+builder.Services.AddScoped<ICalculadoraEmissaoEnergia, CalculadoraEmissaoEnergia>();
 
 builder.Services.AddDefaultAWSOptions(builder.Configuration.GetAWSOptions());
 builder.Services.AddAWSService<IAmazonCognitoIdentityProvider>();

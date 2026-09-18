@@ -21,11 +21,11 @@
     display: flex;
     align-items: center;
     padding: 0 1.5rem;
-    background-color: rgba(0, 0, 0, 0.35);
+    background-color: rgba(255, 255, 255, 0.12);
 }
 
 .nav-brand {
-    color: #ffffff;
+    color: white !important;
     letter-spacing: 0.01em;
 }
 
@@ -51,7 +51,7 @@
 }
 
 ::deep .mud-nav-link .mud-nav-link-icon {
-    color: rgba(255, 255, 255, 0.65);
+    color: white !important;
 }
 
 ::deep .mud-nav-link:hover {
@@ -62,12 +62,12 @@
 ::deep .mud-nav-link.active,
 ::deep .mud-nav-link[aria-current="page"] {
     background-color: rgba(94, 169, 240, 0.25);
-    color: #ffffff;
+    color: lightblue !important;
 }
 
 ::deep .mud-nav-link.active .mud-nav-link-icon,
 ::deep .mud-nav-link[aria-current="page"] .mud-nav-link-icon {
-    color: #7ec8ff;
+    color: #ffffff !important;
 }
 
 ::deep .logout-button {

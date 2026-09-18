@@ -1,6 +1,7 @@
 using CompenseAgora.Common.Exceptions;
 using CompenseAgora.Data;
 using CompenseAgora.Entities;
+using CompenseAgora.Features.Energias.Calculo;
 using FluentValidation;
 using MediatR;
 
@@ -21,7 +22,8 @@ public class UpdateEnergiaCommandValidator : AbstractValidator<UpdateEnergiaComm
     }
 }
 
-public class UpdateEnergiaCommandHandler(CompenseAgoraDbContext dbContext) : IRequestHandler<UpdateEnergiaCommand>
+public class UpdateEnergiaCommandHandler(CompenseAgoraDbContext dbContext, ICalculadoraEmissaoEnergia calculadoraEmissao)
+    : IRequestHandler<UpdateEnergiaCommand>
 {
     public async Task Handle(UpdateEnergiaCommand request, CancellationToken cancellationToken)
     {
@@ -30,6 +32,8 @@ public class UpdateEnergiaCommandHandler(CompenseAgoraDbContext dbContext) : IRe
 
         energia.DataReferencia = request.DataReferencia;
         energia.Quantidade = request.Quantidade;
+        energia.EmissaoCO2 = await calculadoraEmissao.CalcularEmissaoCO2Async(
+            request.DataReferencia, request.Quantidade, cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }

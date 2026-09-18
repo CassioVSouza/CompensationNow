@@ -1,5 +1,6 @@
 using CompenseAgora.Data;
 using CompenseAgora.Entities;
+using CompenseAgora.Features.Energias.Calculo;
 using FluentValidation;
 using MediatR;
 
@@ -20,17 +21,21 @@ public class CreateEnergiaCommandValidator : AbstractValidator<CreateEnergiaComm
     }
 }
 
-public class CreateEnergiaCommandHandler(CompenseAgoraDbContext dbContext) : IRequestHandler<CreateEnergiaCommand, int>
+public class CreateEnergiaCommandHandler(CompenseAgoraDbContext dbContext, ICalculadoraEmissaoEnergia calculadoraEmissao)
+    : IRequestHandler<CreateEnergiaCommand, int>
 {
     public async Task<int> Handle(CreateEnergiaCommand request, CancellationToken cancellationToken)
     {
+        var emissaoCO2 = await calculadoraEmissao.CalcularEmissaoCO2Async(
+            request.DataReferencia, request.Quantidade, cancellationToken);
+
         var energia = new Energia
         {
             CodigoPessoa = request.CodigoPessoa,
             CriadoEm = DateOnly.FromDateTime(DateTime.UtcNow),
             DataReferencia = request.DataReferencia,
             Quantidade = request.Quantidade,
-            EmissaoCO2 = 0,
+            EmissaoCO2 = emissaoCO2,
         };
 
         dbContext.Energias.Add(energia);

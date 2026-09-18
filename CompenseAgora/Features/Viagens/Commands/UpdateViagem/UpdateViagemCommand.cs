@@ -1,6 +1,7 @@
 using CompenseAgora.Common.Exceptions;
 using CompenseAgora.Data;
 using CompenseAgora.Entities;
+using CompenseAgora.Features.Viagens.Calculo;
 using FluentValidation;
 using MediatR;
 
@@ -30,7 +31,8 @@ public class UpdateViagemCommandValidator : AbstractValidator<UpdateViagemComman
     }
 }
 
-public class UpdateViagemCommandHandler(CompenseAgoraDbContext dbContext) : IRequestHandler<UpdateViagemCommand>
+public class UpdateViagemCommandHandler(CompenseAgoraDbContext dbContext, ICalculadoraEmissaoViagem calculadoraEmissao)
+    : IRequestHandler<UpdateViagemCommand>
 {
     public async Task Handle(UpdateViagemCommand request, CancellationToken cancellationToken)
     {
@@ -43,6 +45,8 @@ public class UpdateViagemCommandHandler(CompenseAgoraDbContext dbContext) : IReq
         viagem.Consumo = request.Consumo;
         viagem.AnoFrota = request.AnoFrota;
         viagem.DistanciaKM = request.DistanciaKM;
+        viagem.EmissaoCO2 = await calculadoraEmissao.CalcularEmissaoCO2Async(
+            request.CodigoFrota, request.DataReferencia, request.Consumo, request.AnoFrota, request.DistanciaKM, cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }
