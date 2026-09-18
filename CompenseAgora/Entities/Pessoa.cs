@@ -14,7 +14,9 @@ public class Pessoa
     public string? Estado { get; set; }
     public string? Pais { get; set; }
     public string? Celular { get; set; }
+    public bool Admin { get; set; }
 
     public ICollection<Viagem> Viagens { get; set; } = new List<Viagem>();
     public ICollection<Energia> Energias { get; set; } = new List<Energia>();
+    public ICollection<Compensacao> Compensacoes { get; set; } = new List<Compensacao>();
 }

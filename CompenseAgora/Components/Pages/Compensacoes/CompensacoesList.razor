@@ -1,0 +1,104 @@
+@page "/compensacoes"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using CompenseAgora.Common
+@using CompenseAgora.Features.Compensacoes.Queries.GetCompensacoes
+@using MediatR
+@inject IMediator Mediator
+
+<PageTitle>Compensação</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <MudText Typo="Typo.h4">Compensação</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/compensacoes/nova">
+        Nova compensação
+    </MudButton>
+</div>
+
+@if (_compensacoes is null)
+{
+    <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+        <span>Carregando compensações…</span>
+    </div>
+}
+else if (_compensacoes.Count == 0)
+{
+    <MudPaper Class="pa-6 d-flex flex-column align-items-center text-center" Elevation="0" Outlined="true">
+        <MudIcon Icon="@Icons.Material.Filled.Park" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
+        <MudText Typo="Typo.h6" Class="mb-1">Nenhuma compensação cadastrada ainda</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
+            Registre suas compensações de carbono para acompanhar seu saldo de emissões.
+        </MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/compensacoes/nova">
+            Nova compensação
+        </MudButton>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudToolBar Class="px-2" WrapContent="true">
+            <MudTextField T="string" ValueChanged="@((string s) => _searchString = s)" Value="_searchString"
+                          Placeholder="Buscar por data ou tipo..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" Class="mt-0" Clearable="true" />
+        </MudToolBar>
+
+        <MudTable Items="_compensacoes" Hover="true" Striped="true" Filter="FilterFunc" Dense="false" SortLabel="Ordenar por">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<Features.Compensacoes.CompensacaoDto, object>(x => x.DataReferencia)">Data de referência</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<Features.Compensacoes.CompensacaoDto, object>(x => x.TipoCompensacao)">Tipo</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<Features.Compensacoes.CompensacaoDto, object>(x => x.QuantidadeCompensada)">Quantidade compensada</MudTableSortLabel></MudTh>
+                <MudTh Style="width: 1%;"></MudTh>
+            </HeaderContent>
+            <RowTemplate Context="row">
+                @{ var compensacao = row!; }
+                <MudTd DataLabel="Data de referência">@compensacao.DataReferencia.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd DataLabel="Tipo">@compensacao.TipoCompensacao</MudTd>
+                <MudTd DataLabel="Quantidade compensada">@FormatadorEmissao.FormatarToneladas(compensacao.QuantidadeCompensada)</MudTd>
+                <MudTd DataLabel="Ações" Class="text-nowrap">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                                   Href="@($"/compensacoes/{compensacao.Codigo}/editar")" title="Editar compensação" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   Href="@($"/compensacoes/{compensacao.Codigo}/excluir")" title="Excluir compensação" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager RowsPerPageString="Linhas por página" InfoFormat="{first_item}-{last_item} de {all_items}" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private List<Features.Compensacoes.CompensacaoDto>? _compensacoes;
+    private string _searchString = string.Empty;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateTask!;
+        var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        _compensacoes = await Mediator.Send(new GetCompensacoesQuery(codigoPessoa));
+    }
+
+    private bool FilterFunc(Features.Compensacoes.CompensacaoDto? compensacao)
+    {
+        if (compensacao is null)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(_searchString))
+        {
+            return true;
+        }
+
+        return compensacao.DataReferencia.ToString("dd/MM/yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || compensacao.TipoCompensacao.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    }
+}

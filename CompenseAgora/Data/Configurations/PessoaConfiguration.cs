@@ -22,6 +22,7 @@ public class PessoaConfiguration : IEntityTypeConfiguration<Pessoa>
         builder.Property(p => p.Estado).HasMaxLength(100);
         builder.Property(p => p.Pais).HasMaxLength(100);
         builder.Property(p => p.Celular).HasMaxLength(20);
+        builder.Property(p => p.Admin).IsRequired();
 
         builder.HasIndex(p => p.Email).IsUnique();
         builder.HasIndex(p => p.CognitoSub).IsUnique();

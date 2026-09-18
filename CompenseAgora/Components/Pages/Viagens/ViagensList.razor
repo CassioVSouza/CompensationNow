@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @rendermode InteractiveServer
 @using System.Security.Claims
+@using CompenseAgora.Common
 @using CompenseAgora.Features.Viagens.Queries.GetViagens
 @using MediatR
 @inject IMediator Mediator
@@ -64,7 +65,7 @@ else
                 <MudTd DataLabel="Ano da frota">@(viagem.AnoFrota == 0 ? "-" : viagem.AnoFrota.ToString())</MudTd>
                 <MudTd DataLabel="Consumo">@(viagem.Consumo == 0 ? "-" : viagem.Consumo.ToString("N2"))</MudTd>
                 <MudTd DataLabel="Distância (km)">@(viagem.DistanciaKM == 0 ? "-" : viagem.DistanciaKM.ToString("N2"))</MudTd>
-                <MudTd DataLabel="Emissão de CO2">@viagem.EmissaoCO2.ToString("N2") kg</MudTd>
+                <MudTd DataLabel="Emissão de CO2">@FormatadorEmissao.ParaToneladas(viagem.EmissaoCO2).ToString("N3") t</MudTd>
                 <MudTd DataLabel="Ações" Class="text-nowrap">
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
                                    Href="@($"/viagens/{viagem.Codigo}/editar")" title="Editar viagem" />

@@ -30,12 +30,12 @@
 {
     <MudGrid Class="mt-1">
         <MudItem xs="12" sm="6">
-            <MudNumericField T="int" Label="Ano da frota" @bind-Value="Model.AnoFrota" @bind-Value:after="NotifyChangedAsync"
+            <MudNumericField T="int" Culture="@CulturaBrasileira.PtBr" Label="Ano da frota" @bind-Value="Model.AnoFrota" @bind-Value:after="NotifyChangedAsync"
                               Variant="Variant.Outlined" Min="0"
                               HelperText="Ano de fabricação do veículo (opcional)." />
         </MudItem>
         <MudItem xs="12" sm="6">
-            <MudNumericField T="decimal" Label="Distância (km)" @bind-Value="Model.DistanciaKM" @bind-Value:after="NotifyChangedAsync"
+            <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="Distância (km)" @bind-Value="Model.DistanciaKM" @bind-Value:after="NotifyChangedAsync"
                               Variant="Variant.Outlined" Min="0"
                               HelperText="Distância total percorrida, em quilômetros." />
         </MudItem>
@@ -45,7 +45,7 @@ else if (Model.TipoRegistro == TipoRegistroViagem.PorCombustivel)
 {
     <MudGrid Class="mt-1">
         <MudItem xs="12" sm="6">
-            <MudNumericField T="decimal" Label="Consumo de combustível" @bind-Value="Model.Consumo" @bind-Value:after="NotifyChangedAsync"
+            <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="Consumo de combustível" @bind-Value="Model.Consumo" @bind-Value:after="NotifyChangedAsync"
                               Variant="Variant.Outlined" Min="0"
                               HelperText="Quantidade de combustível consumida, em litros." />
         </MudItem>
@@ -64,11 +64,11 @@ else
 {
     <MudGrid Class="mt-1">
         <MudItem xs="12" sm="4">
-            <MudNumericField T="int" Label="Ano da frota" @bind-Value="Model.AnoFrota" @bind-Value:after="NotifyChangedAsync"
+            <MudNumericField T="int" Culture="@CulturaBrasileira.PtBr" Label="Ano da frota" @bind-Value="Model.AnoFrota" @bind-Value:after="NotifyChangedAsync"
                               Variant="Variant.Outlined" Min="0" />
         </MudItem>
         <MudItem xs="12" sm="4">
-            <MudNumericField T="decimal" Label="Consumo de combustível" @bind-Value="Model.Consumo" @bind-Value:after="NotifyChangedAsync"
+            <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="Consumo de combustível" @bind-Value="Model.Consumo" @bind-Value:after="NotifyChangedAsync"
                               Variant="Variant.Outlined" Min="0" HelperText="Em litros." />
         </MudItem>
         <MudItem xs="12" sm="4">

@@ -1,0 +1,127 @@
+@page "/compensacoes/{Codigo:int}/excluir"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using CompenseAgora.Common
+@using CompenseAgora.Common.Exceptions
+@using CompenseAgora.Features.Compensacoes.Commands.DeleteCompensacao
+@using CompenseAgora.Features.Compensacoes.Queries.GetCompensacaoById
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Excluir compensação</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Excluir compensação</MudText>
+
+@if (_compensacao is null)
+{
+    @if (!_notFound)
+    {
+        <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+            <span>Carregando compensação…</span>
+        </div>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+            Esta compensação não foi encontrada. Ela pode já ter sido excluída.
+        </MudAlert>
+        <MudButton Class="mt-3" Variant="Variant.Text" Href="/compensacoes">Voltar para a lista</MudButton>
+    }
+}
+else
+{
+    <MudPaper Class="pa-4" Elevation="1" Style="max-width: 640px;">
+        @if (_errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+        }
+
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+            Tem certeza de que deseja excluir esta compensação? Esta ação não pode ser desfeita.
+        </MudAlert>
+
+        <MudSimpleTable Dense="true" Elevation="0">
+            <tbody>
+                <tr>
+                    <td><MudText Typo="Typo.body2" Color="Color.Secondary">Data de referência</MudText></td>
+                    <td><MudText Typo="Typo.body1">@_compensacao.DataReferencia.ToString("dd/MM/yyyy")</MudText></td>
+                </tr>
+                <tr>
+                    <td><MudText Typo="Typo.body2" Color="Color.Secondary">Tipo</MudText></td>
+                    <td><MudText Typo="Typo.body1">@_compensacao.TipoCompensacao</MudText></td>
+                </tr>
+                <tr>
+                    <td><MudText Typo="Typo.body2" Color="Color.Secondary">Quantidade compensada</MudText></td>
+                    <td><MudText Typo="Typo.body1">@FormatadorEmissao.FormatarToneladas(_compensacao.QuantidadeCompensada)</MudText></td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+
+        <div class="d-flex gap-2 mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="HandleDeleteAsync" Disabled="@_isDeleting">
+                @if (_isDeleting)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Excluir compensação
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/compensacoes" Disabled="@_isDeleting">Cancelar</MudButton>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    [Parameter]
+    public int Codigo { get; set; }
+
+    private Features.Compensacoes.CompensacaoDto? _compensacao;
+    private bool _notFound;
+    private bool _isDeleting;
+    private string? _errorMessage;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateTask!;
+        var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var compensacao = await Mediator.Send(new GetCompensacaoByIdQuery(Codigo));
+        if (compensacao is null || compensacao.CodigoPessoa != codigoPessoa)
+        {
+            _notFound = true;
+            return;
+        }
+
+        _compensacao = compensacao;
+    }
+
+    private async Task HandleDeleteAsync()
+    {
+        _isDeleting = true;
+        try
+        {
+            await Mediator.Send(new DeleteCompensacaoCommand(Codigo));
+            Snackbar.Add("Compensação excluída com sucesso.", Severity.Success);
+            NavigationManager.NavigateTo("/compensacoes");
+        }
+        catch (NotFoundException)
+        {
+            _notFound = true;
+            _compensacao = null;
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível excluir a compensação agora. Tente novamente em instantes.";
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+}

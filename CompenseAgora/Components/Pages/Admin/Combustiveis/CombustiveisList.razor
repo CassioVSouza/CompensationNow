@@ -1,0 +1,73 @@
+@page "/admin/combustiveis"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using CompenseAgora.Features.Combustiveis
+@using CompenseAgora.Features.Combustiveis.Queries.GetTodosCombustiveis
+@using MediatR
+@inject IMediator Mediator
+
+<PageTitle>Combustíveis</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <MudText Typo="Typo.h4">Combustíveis</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/admin/combustiveis/novo">
+        Novo combustível
+    </MudButton>
+</div>
+
+@if (_combustiveis is null)
+{
+    <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+        <span>Carregando combustíveis…</span>
+    </div>
+}
+else if (_combustiveis.Count == 0)
+{
+    <MudPaper Class="pa-6 d-flex flex-column align-items-center text-center" Elevation="0" Outlined="true">
+        <MudText Typo="Typo.h6" Class="mb-1">Nenhum combustível cadastrado ainda</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/admin/combustiveis/novo">
+            Novo combustível
+        </MudButton>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudTable Items="_combustiveis" Hover="true" Striped="true" Dense="false">
+            <HeaderContent>
+                <MudTh>Nome</MudTh>
+                <MudTh>Unidade</MudTh>
+                <MudTh>Principal</MudTh>
+                <MudTh>Biogênico</MudTh>
+                <MudTh>Fóssil</MudTh>
+                <MudTh Style="width: 1%;"></MudTh>
+            </HeaderContent>
+            <RowTemplate Context="combustivel">
+                <MudTd DataLabel="Nome">@combustivel.Nome</MudTd>
+                <MudTd DataLabel="Unidade">@combustivel.UnidadeMedida</MudTd>
+                <MudTd DataLabel="Principal">@(combustivel.CombustivelPrincipal ? "Sim" : "Não")</MudTd>
+                <MudTd DataLabel="Biogênico">@(combustivel.NomeCombustivelBiogenico ?? "-")</MudTd>
+                <MudTd DataLabel="Fóssil">@(combustivel.NomeCombustivelFossil ?? "-")</MudTd>
+                <MudTd DataLabel="Ações" Class="text-nowrap">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                                   Href="@($"/admin/combustiveis/{combustivel.Codigo}/editar")" title="Editar" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   Href="@($"/admin/combustiveis/{combustivel.Codigo}/excluir")" title="Excluir" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager RowsPerPageString="Linhas por página" InfoFormat="{first_item}-{last_item} de {all_items}" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private List<CombustivelDto>? _combustiveis;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _combustiveis = await Mediator.Send(new GetTodosCombustiveisQuery());
+    }
+}

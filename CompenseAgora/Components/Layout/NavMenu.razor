@@ -21,7 +21,31 @@
                 <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Painel</MudNavLink>
                 <MudNavLink Href="viagens" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.DirectionsCar">Viagens</MudNavLink>
                 <MudNavLink Href="energias" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Bolt">Energia</MudNavLink>
+                <MudNavLink Href="compensacoes" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Park">Compensação</MudNavLink>
                 <MudNavLink Href="relatorio" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Description">Relatório</MudNavLink>
+
+                <AuthorizeView Roles="Admin" Context="adminState">
+                    <Authorized>
+                        @* Plain checkbox/label toggle, same technique as the mobile .navbar-toggler above:
+                           MudNavGroup's own expand/collapse needs a live SignalR circuit to handle the click,
+                           which this static-SSR menu doesn't have (see the note at the top of this file). *@
+                        <input type="checkbox" id="admin-nav-toggle" class="admin-nav-toggle" />
+                        <label for="admin-nav-toggle" class="admin-nav-toggle-label mud-nav-link">
+                            <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Class="mud-nav-link-icon" />
+                            <span class="admin-nav-toggle-text">Administração</span>
+                            <MudIcon Icon="@Icons.Material.Filled.ExpandMore" Class="admin-nav-toggle-chevron" Size="Size.Small" />
+                        </label>
+                        <div class="admin-nav-links">
+                            <MudNavLink Href="admin/gases-efeito-estufa" Match="NavLinkMatch.Prefix">Gases de efeito estufa</MudNavLink>
+                            <MudNavLink Href="admin/combustiveis" Match="NavLinkMatch.Prefix">Combustíveis</MudNavLink>
+                            <MudNavLink Href="admin/fatores-combustivel" Match="NavLinkMatch.Prefix">Fatores do combustível</MudNavLink>
+                            <MudNavLink Href="admin/frotas" Match="NavLinkMatch.Prefix">Frotas</MudNavLink>
+                            <MudNavLink Href="admin/consumos-medio-frota" Match="NavLinkMatch.Prefix">Consumo médio da frota</MudNavLink>
+                            <MudNavLink Href="admin/fatores-composicao-combustivel" Match="NavLinkMatch.Prefix">Composição do combustível</MudNavLink>
+                            <MudNavLink Href="admin/fatores-energia" Match="NavLinkMatch.Prefix">Fatores de energia</MudNavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
 
                 <MudDivider Class="my-3 mx-4" />
 

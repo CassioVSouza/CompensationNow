@@ -14,7 +14,15 @@ public class GetFrotasQueryHandler(CompenseAgoraDbContext dbContext)
         return dbContext.Frotas
             .AsNoTracking()
             .OrderBy(f => f.Nome)
-            .Select(f => new FrotaDto(f.Codigo, f.Nome, f.CodigoCombustivelPrimario))
+            .Select(f => new FrotaDto(
+                f.Codigo,
+                f.Nome,
+                f.CodigoCombustivelPrimario,
+                f.CombustivelPrimario.Nome,
+                f.CodigoCombustivelBiogenico,
+                f.CombustivelBiogenico != null ? f.CombustivelBiogenico.Nome : null,
+                f.CodigoCombustivelFossil,
+                f.CombustivelFossil != null ? f.CombustivelFossil.Nome : null))
             .ToListAsync(cancellationToken);
     }
 }

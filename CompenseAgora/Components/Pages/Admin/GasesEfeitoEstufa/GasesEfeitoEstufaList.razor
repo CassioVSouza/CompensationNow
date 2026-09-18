@@ -1,0 +1,69 @@
+@page "/admin/gases-efeito-estufa"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using CompenseAgora.Features.GasesEfeitoEstufa
+@using CompenseAgora.Features.GasesEfeitoEstufa.Queries.GetGasesEfeitoEstufa
+@using MediatR
+@inject IMediator Mediator
+
+<PageTitle>Gases de efeito estufa</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <MudText Typo="Typo.h4">Gases de efeito estufa</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/admin/gases-efeito-estufa/novo">
+        Novo gás
+    </MudButton>
+</div>
+
+@if (_gases is null)
+{
+    <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+        <span>Carregando gases…</span>
+    </div>
+}
+else if (_gases.Count == 0)
+{
+    <MudPaper Class="pa-6 d-flex flex-column align-items-center text-center" Elevation="0" Outlined="true">
+        <MudText Typo="Typo.h6" Class="mb-1">Nenhum gás cadastrado ainda</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/admin/gases-efeito-estufa/novo">
+            Novo gás
+        </MudButton>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudTable Items="_gases" Hover="true" Striped="true" Dense="false">
+            <HeaderContent>
+                <MudTh>Nome</MudTh>
+                <MudTh>Família</MudTh>
+                <MudTh>GWP</MudTh>
+                <MudTh Style="width: 1%;"></MudTh>
+            </HeaderContent>
+            <RowTemplate Context="gas">
+                <MudTd DataLabel="Nome">@gas.Nome</MudTd>
+                <MudTd DataLabel="Família">@gas.Familia</MudTd>
+                <MudTd DataLabel="GWP">@gas.GWP.ToString("N2")</MudTd>
+                <MudTd DataLabel="Ações" Class="text-nowrap">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                                   Href="@($"/admin/gases-efeito-estufa/{gas.Codigo}/editar")" title="Editar" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   Href="@($"/admin/gases-efeito-estufa/{gas.Codigo}/excluir")" title="Excluir" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager RowsPerPageString="Linhas por página" InfoFormat="{first_item}-{last_item} de {all_items}" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private List<GasEfeitoEstufaDto>? _gases;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _gases = await Mediator.Send(new GetGasesEfeitoEstufaQuery());
+    }
+}

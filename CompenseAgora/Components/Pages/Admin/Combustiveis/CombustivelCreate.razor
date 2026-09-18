@@ -1,0 +1,103 @@
+@page "/admin/combustiveis/novo"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using CompenseAgora.Features.Combustiveis
+@using CompenseAgora.Features.Combustiveis.Commands.CreateCombustivel
+@using CompenseAgora.Features.Combustiveis.Queries.GetTodosCombustiveis
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Novo combustível</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Novo combustível</MudText>
+
+@if (_combustiveis is null)
+{
+    <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+        <span>Carregando…</span>
+    </div>
+}
+else
+{
+    <MudPaper Class="pa-4" Elevation="1" Style="max-width: 600px;">
+        @if (_errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+        }
+
+        <MudTextField T="string" Label="Nome" @bind-Value="_nome" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField T="string" Label="Unidade de medida" @bind-Value="_unidadeMedida" Variant="Variant.Outlined" Class="mb-3"
+                      HelperText="Ex.: L, m³, kWh." />
+        <MudCheckBox T="bool" @bind-Value="_combustivelPrincipal" Label="É um combustível principal (não aparece no seletor de viagens)" Class="mb-3" />
+
+        <MudSelect T="int?" Label="Combustível biogênico (opcional)" @bind-Value="_codigoCombustivelBiogenico"
+                   Variant="Variant.Outlined" Clearable="true" Class="mb-3">
+            @foreach (var combustivel in _combustiveis)
+            {
+                <MudSelectItem T="int?" Value="@combustivel.Codigo">@combustivel.Nome</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSelect T="int?" Label="Combustível fóssil (opcional)" @bind-Value="_codigoCombustivelFossil"
+                   Variant="Variant.Outlined" Clearable="true" Class="mb-3">
+            @foreach (var combustivel in _combustiveis)
+            {
+                <MudSelectItem T="int?" Value="@combustivel.Codigo">@combustivel.Nome</MudSelectItem>
+            }
+        </MudSelect>
+
+        <div class="d-flex gap-2 mt-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSaveAsync" Disabled="@_isSaving">
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Salvar
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/admin/combustiveis" Disabled="@_isSaving">Cancelar</MudButton>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    private List<CombustivelDto>? _combustiveis;
+    private string _nome = string.Empty;
+    private string _unidadeMedida = string.Empty;
+    private bool _combustivelPrincipal;
+    private int? _codigoCombustivelBiogenico;
+    private int? _codigoCombustivelFossil;
+    private string? _errorMessage;
+    private bool _isSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _combustiveis = await Mediator.Send(new GetTodosCombustiveisQuery());
+    }
+
+    private async Task HandleSaveAsync()
+    {
+        _isSaving = true;
+        try
+        {
+            await Mediator.Send(new CreateCombustivelCommand(
+                _nome, _unidadeMedida, _combustivelPrincipal, _codigoCombustivelBiogenico, _codigoCombustivelFossil));
+            Snackbar.Add("Combustível cadastrado com sucesso.", Severity.Success);
+            NavigationManager.NavigateTo("/admin/combustiveis");
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível salvar o combustível agora. Tente novamente em instantes.";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

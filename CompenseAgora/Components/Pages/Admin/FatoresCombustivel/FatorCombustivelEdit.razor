@@ -1,0 +1,137 @@
+@page "/admin/fatores-combustivel/{Codigo:int}/editar"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using CompenseAgora.Common.Exceptions
+@using CompenseAgora.Entities
+@using CompenseAgora.Features.Combustiveis
+@using CompenseAgora.Features.Combustiveis.Queries.GetTodosCombustiveis
+@using CompenseAgora.Features.FatoresCombustivel.Commands.UpdateFatorCombustivel
+@using CompenseAgora.Features.FatoresCombustivel.Queries.GetFatorCombustivelById
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Editar fator do combustível</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Editar fator do combustível</MudText>
+
+@if (!_loaded)
+{
+    @if (!_notFound)
+    {
+        <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+            <span>Carregando fator…</span>
+        </div>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+            Este fator não foi encontrado. Ele pode já ter sido excluído.
+        </MudAlert>
+        <MudButton Class="mt-3" Variant="Variant.Text" Href="/admin/fatores-combustivel">Voltar para a lista</MudButton>
+    }
+}
+else
+{
+    <MudPaper Class="pa-4" Elevation="1" Style="max-width: 640px;">
+        @if (_errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+        }
+
+        <MudSelect T="int" Label="Combustível" @bind-Value="_codigoCombustivel" Variant="Variant.Outlined" Class="mb-3">
+            @foreach (var combustivel in _combustiveis!)
+            {
+                <MudSelectItem T="int" Value="@combustivel.Codigo">@combustivel.Nome</MudSelectItem>
+            }
+        </MudSelect>
+        <MudNumericField T="int" Culture="@CulturaBrasileira.PtBr" Label="Ano" @bind-Value="_ano" Variant="Variant.Outlined" Class="mb-3" />
+        <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="Poder calorífico inferior" @bind-Value="_poderCalorificoInferior"
+                          Variant="Variant.Outlined" Min="0" Class="mb-3" />
+        <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="Densidade" @bind-Value="_densidade" Variant="Variant.Outlined" Min="0" Class="mb-3" />
+        <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="Fator CO2" @bind-Value="_co2" Variant="Variant.Outlined" Min="0" Class="mb-3" />
+        <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="Fator CH4" @bind-Value="_ch4" Variant="Variant.Outlined" Min="0" Class="mb-3" />
+        <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="Fator N2O" @bind-Value="_n2o" Variant="Variant.Outlined" Min="0" Class="mb-3" />
+
+        <div class="d-flex gap-2 mt-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSaveAsync" Disabled="@_isSaving">
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Salvar
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/admin/fatores-combustivel" Disabled="@_isSaving">Cancelar</MudButton>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    [Parameter]
+    public int Codigo { get; set; }
+
+    private List<CombustivelDto>? _combustiveis;
+    private bool _loaded;
+    private bool _notFound;
+    private int _codigoCombustivel;
+    private int _ano;
+    private decimal _poderCalorificoInferior;
+    private decimal _densidade;
+    private decimal _co2;
+    private decimal _ch4;
+    private decimal _n2o;
+    private string? _errorMessage;
+    private bool _isSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _combustiveis = await Mediator.Send(new GetTodosCombustiveisQuery());
+
+        var fator = await Mediator.Send(new GetFatorCombustivelByIdQuery(Codigo));
+        if (fator is null)
+        {
+            _notFound = true;
+            return;
+        }
+
+        _codigoCombustivel = fator.CodigoCombustivel;
+        _ano = fator.Ano;
+        _poderCalorificoInferior = fator.PoderCalorificoInferior;
+        _densidade = fator.Densidade;
+        _co2 = fator.CO2;
+        _ch4 = fator.CH4;
+        _n2o = fator.N2O;
+        _loaded = true;
+    }
+
+    private async Task HandleSaveAsync()
+    {
+        _isSaving = true;
+        try
+        {
+            await Mediator.Send(new UpdateFatorCombustivelCommand(
+                Codigo, _codigoCombustivel, _ano, _poderCalorificoInferior, _densidade, _co2, _ch4, _n2o));
+            Snackbar.Add("Fator atualizado com sucesso.", Severity.Success);
+            NavigationManager.NavigateTo("/admin/fatores-combustivel");
+        }
+        catch (NotFoundException)
+        {
+            _notFound = true;
+            _loaded = false;
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível salvar o fator agora. Tente novamente em instantes.";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

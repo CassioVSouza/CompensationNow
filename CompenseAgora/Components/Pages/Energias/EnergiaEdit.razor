@@ -43,7 +43,7 @@ else
                                HelperText="Data a que este consumo de energia se refere." />
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudNumericField T="decimal" Label="Quantidade (kWh)" @bind-Value="_input.Quantidade" @bind-Value:after="ClearError"
+                <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="Quantidade (kWh)" @bind-Value="_input.Quantidade" @bind-Value:after="ClearError"
                                   Variant="Variant.Outlined" Min="0"
                                   HelperText="Consumo de energia elétrica no período, em quilowatt-hora." />
             </MudItem>

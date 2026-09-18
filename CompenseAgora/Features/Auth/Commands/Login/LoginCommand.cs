@@ -9,7 +9,7 @@ namespace CompenseAgora.Features.Auth.Commands.Login;
 
 public record LoginCommand(string Email, string Password) : IRequest<LoginResult>;
 
-public record LoginResult(int Codigo, string Nome, string Sobrenome, string Email, string CognitoSub);
+public record LoginResult(int Codigo, string Nome, string Sobrenome, string Email, string CognitoSub, bool Admin);
 
 public class LoginCommandValidator : AbstractValidator<LoginCommand>
 {
@@ -34,6 +34,6 @@ public class LoginCommandHandler(CognitoAuthService cognitoAuth, CompenseAgoraDb
             .FirstOrDefaultAsync(p => p.Email == request.Email, cancellationToken)
             ?? throw new AuthException("Suas credenciais são válidas, mas nenhum perfil foi encontrado para esta conta. Entre em contato com o suporte.");
 
-        return new LoginResult(pessoa.Codigo, pessoa.Nome, pessoa.Sobrenome, pessoa.Email, pessoa.CognitoSub);
+        return new LoginResult(pessoa.Codigo, pessoa.Nome, pessoa.Sobrenome, pessoa.Email, pessoa.CognitoSub, pessoa.Admin);
     }
 }

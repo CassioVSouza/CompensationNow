@@ -68,4 +68,7 @@ public static class CompenseAgoraTheme
 
     /// <summary>Single-hue accent used for the total-emissions trend line.</summary>
     public const string TrendColor = "#2a78d6";
+
+    /// <summary>Palette for the "emitted vs. compensated" comparison chart: red (emitted), green (compensated).</summary>
+    public static readonly string[] CompensacaoSeriesColors = ["#d03b3b", "#0ca30c"];
 }

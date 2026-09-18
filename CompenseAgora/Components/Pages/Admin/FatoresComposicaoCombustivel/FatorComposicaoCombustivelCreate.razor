@@ -1,0 +1,69 @@
+@page "/admin/fatores-composicao-combustivel/novo"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using CompenseAgora.Features.FatoresComposicaoCombustivel.Commands.CreateFatorComposicaoCombustivel
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Novo percentual de composição</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Novo percentual de composição</MudText>
+
+<MudPaper Class="pa-4" Elevation="1" Style="max-width: 600px;">
+    @if (_errorMessage is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+    }
+
+    <MudNumericField T="int" Culture="@CulturaBrasileira.PtBr" Label="Mês" @bind-Value="_mes" Variant="Variant.Outlined" Min="1" Max="12" Class="mb-3" />
+    <MudNumericField T="int" Culture="@CulturaBrasileira.PtBr" Label="Ano" @bind-Value="_ano" Variant="Variant.Outlined" Class="mb-3" />
+    <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="% Etanol na gasolina" @bind-Value="_percentualEtanol" Variant="Variant.Outlined"
+                      Min="0" Max="100" Class="mb-3" />
+    <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="% Biodiesel no diesel" @bind-Value="_percentualBiodiesel" Variant="Variant.Outlined"
+                      Min="0" Max="100" Class="mb-3" />
+
+    <div class="d-flex gap-2 mt-2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSaveAsync" Disabled="@_isSaving">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Salvar
+        </MudButton>
+        <MudButton Variant="Variant.Text" Href="/admin/fatores-composicao-combustivel" Disabled="@_isSaving">Cancelar</MudButton>
+    </div>
+</MudPaper>
+
+@code {
+    private int _mes = DateTime.Now.Month;
+    private int _ano = DateTime.Now.Year;
+    private decimal _percentualEtanol;
+    private decimal _percentualBiodiesel;
+    private string? _errorMessage;
+    private bool _isSaving;
+
+    private async Task HandleSaveAsync()
+    {
+        _isSaving = true;
+        try
+        {
+            await Mediator.Send(new CreateFatorComposicaoCombustivelCommand(_mes, _ano, _percentualEtanol, _percentualBiodiesel));
+            Snackbar.Add("Percentual cadastrado com sucesso.", Severity.Success);
+            NavigationManager.NavigateTo("/admin/fatores-composicao-combustivel");
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível salvar o percentual agora. Tente novamente em instantes.";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

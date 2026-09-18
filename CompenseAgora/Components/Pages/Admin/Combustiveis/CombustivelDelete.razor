@@ -1,0 +1,101 @@
+@page "/admin/combustiveis/{Codigo:int}/excluir"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using CompenseAgora.Common.Exceptions
+@using CompenseAgora.Features.Combustiveis
+@using CompenseAgora.Features.Combustiveis.Commands.DeleteCombustivel
+@using CompenseAgora.Features.Combustiveis.Queries.GetCombustivelById
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Excluir combustível</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Excluir combustível</MudText>
+
+@if (_combustivel is null)
+{
+    @if (!_notFound)
+    {
+        <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+            <span>Carregando combustível…</span>
+        </div>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+            Este combustível não foi encontrado. Ele pode já ter sido excluído.
+        </MudAlert>
+        <MudButton Class="mt-3" Variant="Variant.Text" Href="/admin/combustiveis">Voltar para a lista</MudButton>
+    }
+}
+else
+{
+    <MudPaper Class="pa-4" Elevation="1" Style="max-width: 600px;">
+        @if (_errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+        }
+
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+            Tem certeza de que deseja excluir <strong>@_combustivel.Nome</strong>? Combustíveis usados em frotas,
+            viagens ou fatores cadastrados não podem ser excluídos. Esta ação não pode ser desfeita.
+        </MudAlert>
+
+        <div class="d-flex gap-2 mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="HandleDeleteAsync" Disabled="@_isDeleting">
+                @if (_isDeleting)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Excluir combustível
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/admin/combustiveis" Disabled="@_isDeleting">Cancelar</MudButton>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    [Parameter]
+    public int Codigo { get; set; }
+
+    private CombustivelDto? _combustivel;
+    private bool _notFound;
+    private bool _isDeleting;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _combustivel = await Mediator.Send(new GetCombustivelByIdQuery(Codigo));
+        if (_combustivel is null)
+        {
+            _notFound = true;
+        }
+    }
+
+    private async Task HandleDeleteAsync()
+    {
+        _isDeleting = true;
+        try
+        {
+            await Mediator.Send(new DeleteCombustivelCommand(Codigo));
+            Snackbar.Add("Combustível excluído com sucesso.", Severity.Success);
+            NavigationManager.NavigateTo("/admin/combustiveis");
+        }
+        catch (NotFoundException)
+        {
+            _notFound = true;
+            _combustivel = null;
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível excluir o combustível agora. Ele pode estar em uso por outros registros.";
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+}

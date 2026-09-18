@@ -1,0 +1,73 @@
+@page "/admin/consumos-medio-frota"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using CompenseAgora.Features.ConsumosMedioFrota
+@using CompenseAgora.Features.ConsumosMedioFrota.Queries.GetConsumosMedioFrota
+@using MediatR
+@inject IMediator Mediator
+
+<PageTitle>Consumo médio da frota</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <MudText Typo="Typo.h4">Consumo médio da frota</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/admin/consumos-medio-frota/novo">
+        Novo consumo médio
+    </MudButton>
+</div>
+
+@if (_consumos is null)
+{
+    <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+        <span>Carregando…</span>
+    </div>
+}
+else if (_consumos.Count == 0)
+{
+    <MudPaper Class="pa-6 d-flex flex-column align-items-center text-center" Elevation="0" Outlined="true">
+        <MudText Typo="Typo.h6" Class="mb-1">Nenhum consumo médio cadastrado ainda</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/admin/consumos-medio-frota/novo">
+            Novo consumo médio
+        </MudButton>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudTable Items="_consumos" Hover="true" Striped="true" Dense="false">
+            <HeaderContent>
+                <MudTh>Frota</MudTh>
+                <MudTh>Ano</MudTh>
+                <MudTh>Vale para todos os anos</MudTh>
+                <MudTh>Consumo</MudTh>
+                <MudTh>Unidade</MudTh>
+                <MudTh Style="width: 1%;"></MudTh>
+            </HeaderContent>
+            <RowTemplate Context="consumo">
+                <MudTd DataLabel="Frota">@consumo.NomeFrota</MudTd>
+                <MudTd DataLabel="Ano">@consumo.Ano</MudTd>
+                <MudTd DataLabel="Vale para todos os anos">@(consumo.ParaTodos ? "Sim" : "Não")</MudTd>
+                <MudTd DataLabel="Consumo">@consumo.Consumo.ToString("N2")</MudTd>
+                <MudTd DataLabel="Unidade">@consumo.UnidadeMedida</MudTd>
+                <MudTd DataLabel="Ações" Class="text-nowrap">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                                   Href="@($"/admin/consumos-medio-frota/{consumo.Codigo}/editar")" title="Editar" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   Href="@($"/admin/consumos-medio-frota/{consumo.Codigo}/excluir")" title="Excluir" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager RowsPerPageString="Linhas por página" InfoFormat="{first_item}-{last_item} de {all_items}" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private List<ConsumoMedioFrotaDto>? _consumos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _consumos = await Mediator.Send(new GetConsumosMedioFrotaQuery());
+    }
+}

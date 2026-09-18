@@ -13,6 +13,7 @@ public class CompenseAgoraDbContext(DbContextOptions<CompenseAgoraDbContext> opt
     public DbSet<ConsumoMedioFrota> ConsumosMedioFrota => Set<ConsumoMedioFrota>();
     public DbSet<Viagem> Viagens => Set<Viagem>();
     public DbSet<Energia> Energias => Set<Energia>();
+    public DbSet<Compensacao> Compensacoes => Set<Compensacao>();
     public DbSet<FatorComposicaoCombustivel> FatoresComposicaoCombustivel => Set<FatorComposicaoCombustivel>();
     public DbSet<FatorEnergia> FatoresEnergia => Set<FatorEnergia>();
 

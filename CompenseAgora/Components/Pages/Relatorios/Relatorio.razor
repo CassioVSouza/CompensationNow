@@ -3,12 +3,15 @@
 @rendermode InteractiveServer
 @using System.Globalization
 @using System.Security.Claims
+@using CompenseAgora.Common
 @using CompenseAgora.Features.Dashboard
 @using CompenseAgora.Features.Dashboard.Queries.GetDashboard
 @using CompenseAgora.Features.Viagens
 @using CompenseAgora.Features.Viagens.Queries.GetViagens
 @using CompenseAgora.Features.Energias
 @using CompenseAgora.Features.Energias.Queries.GetEnergias
+@using CompenseAgora.Features.Compensacoes
+@using CompenseAgora.Features.Compensacoes.Queries.GetCompensacoes
 @using MediatR
 @inject IMediator Mediator
 @inject IJSRuntime JsRuntime
@@ -49,7 +52,7 @@ else
                 Este relatório consolida as emissões de dióxido de carbono equivalente (CO2e) registradas por você
                 na Compense Agora, com base nas suas viagens e no seu consumo de energia. Os valores são calculados
                 a partir dos fatores de emissão cadastrados para cada combustível e fonte de energia, e são
-                expressos em quilogramas de CO2 equivalente (kg CO2e). Use estes números para acompanhar sua
+                expressos em toneladas de CO2 equivalente (t CO2e). Use estes números para acompanhar sua
                 pegada de carbono ao longo do tempo e identificar oportunidades de redução ou compensação.
             </MudText>
         </MudPaper>
@@ -67,27 +70,40 @@ else
         else
         {
             <MudGrid Class="mb-2">
-                <MudItem xs="12" sm="4">
+                <MudItem xs="12" sm="6" md="3">
                     <MudPaper Class="pa-4" Elevation="1" Style="border-left: 4px solid #0b0b0b;">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Emissão total</MudText>
-                        <MudText Typo="Typo.h5">@FormatKg(_dashboard.TotalEmissao)</MudText>
+                        <MudText Typo="Typo.h5">@FormatadorEmissao.FormatarToneladas(_dashboard.TotalEmissao)</MudText>
                     </MudPaper>
                 </MudItem>
-                <MudItem xs="12" sm="4">
+                <MudItem xs="12" sm="6" md="3">
                     <MudPaper Class="pa-4" Elevation="1" Style="@($"border-left: 4px solid {CompenseAgoraTheme.ChartSeriesColors[0]};")">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Emissão de viagens</MudText>
-                        <MudText Typo="Typo.h5">@FormatKg(_dashboard.TotalViagem)</MudText>
+                        <MudText Typo="Typo.h5">@FormatadorEmissao.FormatarToneladas(_dashboard.TotalViagem)</MudText>
                     </MudPaper>
                 </MudItem>
-                <MudItem xs="12" sm="4">
+                <MudItem xs="12" sm="6" md="3">
                     <MudPaper Class="pa-4" Elevation="1" Style="@($"border-left: 4px solid {CompenseAgoraTheme.ChartSeriesColors[1]};")">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Emissão de energia</MudText>
-                        <MudText Typo="Typo.h5">@FormatKg(_dashboard.TotalEnergia)</MudText>
+                        <MudText Typo="Typo.h5">@FormatadorEmissao.FormatarToneladas(_dashboard.TotalEnergia)</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4" Elevation="1" Style="@($"border-left: 4px solid {CompenseAgoraTheme.CompensacaoSeriesColors[1]};")">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Compensação total</MudText>
+                        <MudText Typo="Typo.h5">@FormatadorEmissao.FormatarToneladas(_dashboard.TotalCompensacao)</MudText>
                     </MudPaper>
                 </MudItem>
             </MudGrid>
 
             <MudGrid Class="mb-4">
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4" Elevation="1">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">Emitido vs. compensado, últimos 12 meses</MudText>
+                        <MudChart ChartType="ChartType.Line" ChartSeries="@_emitidoCompensadoSeries" ChartLabels="@_monthLabels"
+                                  ChartOptions="@_emitidoCompensadoOptions" Width="100%" Height="300px" />
+                    </MudPaper>
+                </MudItem>
                 <MudItem xs="12" md="6">
                     <MudPaper Class="pa-4" Elevation="1">
                         <MudText Typo="Typo.subtitle1" Class="mb-2">Emissão total, últimos 12 meses</MudText>
@@ -100,6 +116,20 @@ else
                         <MudText Typo="Typo.subtitle1" Class="mb-2">Viagens vs. energia</MudText>
                         <MudChart ChartType="ChartType.StackedBar" ChartSeries="@_splitSeries" ChartLabels="@_monthLabels"
                                   ChartOptions="@_barOptions" Width="100%" Height="300px" />
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4" Elevation="1">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">Emissão de viagens, últimos 12 meses</MudText>
+                        <MudChart ChartType="ChartType.Line" ChartSeries="@_viagemSeries" ChartLabels="@_monthLabels"
+                                  ChartOptions="@_viagemLineOptions" Width="100%" Height="300px" />
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4" Elevation="1">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">Emissão de energia, últimos 12 meses</MudText>
+                        <MudChart ChartType="ChartType.Line" ChartSeries="@_energiaSeries" ChartLabels="@_monthLabels"
+                                  ChartOptions="@_energiaLineOptions" Width="100%" Height="300px" />
                     </MudPaper>
                 </MudItem>
             </MudGrid>
@@ -118,7 +148,7 @@ else
                         <MudTh>Combustível</MudTh>
                         <MudTh>Distância (km)</MudTh>
                         <MudTh>Consumo</MudTh>
-                        <MudTh>Emissão (kg CO2e)</MudTh>
+                        <MudTh>Emissão (t CO2e)</MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Data">@context.DataReferencia.ToString("dd/MM/yyyy")</MudTd>
@@ -126,7 +156,7 @@ else
                         <MudTd DataLabel="Combustível">@(context.CombustivelNome ?? "—")</MudTd>
                         <MudTd DataLabel="Distância (km)">@context.DistanciaKM.ToString("N2")</MudTd>
                         <MudTd DataLabel="Consumo">@context.Consumo.ToString("N2")</MudTd>
-                        <MudTd DataLabel="Emissão (kg CO2e)">@context.EmissaoCO2.ToString("N2")</MudTd>
+                        <MudTd DataLabel="Emissão (t CO2e)">@FormatadorEmissao.ParaToneladas(context.EmissaoCO2).ToString("N3")</MudTd>
                     </RowTemplate>
                 </MudTable>
             }
@@ -142,12 +172,33 @@ else
                     <HeaderContent>
                         <MudTh>Data</MudTh>
                         <MudTh>Quantidade</MudTh>
-                        <MudTh>Emissão (kg CO2e)</MudTh>
+                        <MudTh>Emissão (t CO2e)</MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Data">@context.DataReferencia.ToString("dd/MM/yyyy")</MudTd>
                         <MudTd DataLabel="Quantidade">@context.Quantidade.ToString("N2")</MudTd>
-                        <MudTd DataLabel="Emissão (kg CO2e)">@context.EmissaoCO2.ToString("N2")</MudTd>
+                        <MudTd DataLabel="Emissão (t CO2e)">@FormatadorEmissao.ParaToneladas(context.EmissaoCO2).ToString("N3")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+
+            <MudText Typo="Typo.h6" Class="mb-2">Compensações registradas</MudText>
+            @if (_compensacoes.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Nenhuma compensação registrada.</MudText>
+            }
+            else
+            {
+                <MudTable Items="@_compensacoes" Dense="true" Hover="true" Elevation="1">
+                    <HeaderContent>
+                        <MudTh>Data</MudTh>
+                        <MudTh>Tipo</MudTh>
+                        <MudTh>Quantidade compensada (t CO2e)</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Data">@context.DataReferencia.ToString("dd/MM/yyyy")</MudTd>
+                        <MudTd DataLabel="Tipo">@context.TipoCompensacao</MudTd>
+                        <MudTd DataLabel="Quantidade compensada (t CO2e)">@FormatadorEmissao.ParaToneladas(context.QuantidadeCompensada).ToString("N3")</MudTd>
                     </RowTemplate>
                 </MudTable>
             }
@@ -159,12 +210,19 @@ else
     private DashboardDto? _dashboard;
     private List<ViagemDto> _viagens = [];
     private List<EnergiaDto> _energias = [];
+    private List<CompensacaoDto> _compensacoes = [];
     private string _nomeCompleto = string.Empty;
     private string _periodoDescricao = string.Empty;
     private string[] _monthLabels = [];
     private List<ChartSeries<double>> _totalSeries = [];
     private List<ChartSeries<double>> _splitSeries = [];
+    private List<ChartSeries<double>> _viagemSeries = [];
+    private List<ChartSeries<double>> _energiaSeries = [];
+    private List<ChartSeries<double>> _emitidoCompensadoSeries = [];
     private LineChartOptions _lineOptions = new();
+    private LineChartOptions _viagemLineOptions = new();
+    private LineChartOptions _energiaLineOptions = new();
+    private LineChartOptions _emitidoCompensadoOptions = new();
     private StackedBarChartOptions _barOptions = new();
 
     [CascadingParameter]
@@ -181,6 +239,7 @@ else
         _dashboard = await Mediator.Send(new GetDashboardQuery(codigoPessoa));
         _viagens = await Mediator.Send(new GetViagensQuery(codigoPessoa));
         _energias = await Mediator.Send(new GetEnergiasQuery(codigoPessoa));
+        _compensacoes = await Mediator.Send(new GetCompensacoesQuery(codigoPessoa));
 
         _monthLabels = _dashboard.MonthlyEmissions
             .Select(m => new DateTime(m.Year, m.Month, 1).ToString("MMM/yy", CultureInfo.InvariantCulture))
@@ -201,8 +260,8 @@ else
             new ChartSeries<double>
             {
                 Name = "Emissão total",
-                Data = _dashboard.MonthlyEmissions.Select(m => (double)m.Total).ToArray(),
-                TooltipYValueFormat = "N2",
+                Data = _dashboard.MonthlyEmissions.Select(m => (double)FormatadorEmissao.ParaToneladas(m.Total)).ToArray(),
+                TooltipYValueFormat = "N3",
             }
         ];
 
@@ -211,14 +270,50 @@ else
             new ChartSeries<double>
             {
                 Name = "Viagens",
-                Data = _dashboard.MonthlyEmissions.Select(m => (double)m.ViagemEmissao).ToArray(),
-                TooltipYValueFormat = "N2",
+                Data = _dashboard.MonthlyEmissions.Select(m => (double)FormatadorEmissao.ParaToneladas(m.ViagemEmissao)).ToArray(),
+                TooltipYValueFormat = "N3",
             },
             new ChartSeries<double>
             {
                 Name = "Energia",
-                Data = _dashboard.MonthlyEmissions.Select(m => (double)m.EnergiaEmissao).ToArray(),
-                TooltipYValueFormat = "N2",
+                Data = _dashboard.MonthlyEmissions.Select(m => (double)FormatadorEmissao.ParaToneladas(m.EnergiaEmissao)).ToArray(),
+                TooltipYValueFormat = "N3",
+            }
+        ];
+
+        _viagemSeries =
+        [
+            new ChartSeries<double>
+            {
+                Name = "Viagens",
+                Data = _dashboard.MonthlyEmissions.Select(m => (double)FormatadorEmissao.ParaToneladas(m.ViagemEmissao)).ToArray(),
+                TooltipYValueFormat = "N3",
+            }
+        ];
+
+        _energiaSeries =
+        [
+            new ChartSeries<double>
+            {
+                Name = "Energia",
+                Data = _dashboard.MonthlyEmissions.Select(m => (double)FormatadorEmissao.ParaToneladas(m.EnergiaEmissao)).ToArray(),
+                TooltipYValueFormat = "N3",
+            }
+        ];
+
+        _emitidoCompensadoSeries =
+        [
+            new ChartSeries<double>
+            {
+                Name = "Emitido",
+                Data = _dashboard.MonthlyEmissions.Select(m => (double)FormatadorEmissao.ParaToneladas(m.Total)).ToArray(),
+                TooltipYValueFormat = "N3",
+            },
+            new ChartSeries<double>
+            {
+                Name = "Compensado",
+                Data = _dashboard.MonthlyEmissions.Select(m => (double)FormatadorEmissao.ParaToneladas(m.Compensacao)).ToArray(),
+                TooltipYValueFormat = "N3",
             }
         ];
 
@@ -228,8 +323,30 @@ else
             ShowLegend = false,
             ShowDataMarkers = true,
             YAxisRequireZeroPoint = true,
-            YAxisTitle = "kg CO2e",
-            YAxisToStringFunc = v => v.ToString("N0"),
+            YAxisTitle = "t CO2e",
+            YAxisToStringFunc = v => v.ToString("N3"),
+            XAxisLabelRotation = -45,
+        };
+
+        _viagemLineOptions = new LineChartOptions
+        {
+            ChartPalette = [CompenseAgoraTheme.ChartSeriesColors[0]],
+            ShowLegend = false,
+            ShowDataMarkers = true,
+            YAxisRequireZeroPoint = true,
+            YAxisTitle = "t CO2e",
+            YAxisToStringFunc = v => v.ToString("N3"),
+            XAxisLabelRotation = -45,
+        };
+
+        _energiaLineOptions = new LineChartOptions
+        {
+            ChartPalette = [CompenseAgoraTheme.ChartSeriesColors[1]],
+            ShowLegend = false,
+            ShowDataMarkers = true,
+            YAxisRequireZeroPoint = true,
+            YAxisTitle = "t CO2e",
+            YAxisToStringFunc = v => v.ToString("N3"),
             XAxisLabelRotation = -45,
         };
 
@@ -238,8 +355,19 @@ else
             ChartPalette = CompenseAgoraTheme.ChartSeriesColors,
             ShowLegend = true,
             ShowValues = false,
-            YAxisTitle = "kg CO2e",
-            YAxisToStringFunc = v => v.ToString("N0"),
+            YAxisTitle = "t CO2e",
+            YAxisToStringFunc = v => v.ToString("N3"),
+            XAxisLabelRotation = -45,
+        };
+
+        _emitidoCompensadoOptions = new LineChartOptions
+        {
+            ChartPalette = CompenseAgoraTheme.CompensacaoSeriesColors,
+            ShowLegend = true,
+            ShowDataMarkers = true,
+            YAxisRequireZeroPoint = true,
+            YAxisTitle = "t CO2e",
+            YAxisToStringFunc = v => v.ToString("N3"),
             XAxisLabelRotation = -45,
         };
     }
@@ -248,6 +376,4 @@ else
     {
         await JsRuntime.InvokeVoidAsync("window.print");
     }
-
-    private static string FormatKg(decimal value) => $"{value.ToString("N2", CultureInfo.CurrentCulture)} kg CO2e";
 }

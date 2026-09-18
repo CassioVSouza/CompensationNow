@@ -58,6 +58,39 @@ namespace CompenseAgora.Data.Migrations
                     b.ToTable("COMBUSTIVEL", (string)null);
                 });
 
+            modelBuilder.Entity("CompenseAgora.Entities.Compensacao", b =>
+                {
+                    b.Property<int>("Codigo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Codigo"));
+
+                    b.Property<int>("CodigoPessoa")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("CriadoEm")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("DataReferencia")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("QuantidadeCompensada")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("TipoCompensacao")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Codigo");
+
+                    b.HasIndex("CodigoPessoa");
+
+                    b.ToTable("COMPENSACAO", (string)null);
+                });
+
             modelBuilder.Entity("CompenseAgora.Entities.ConsumoMedioFrota", b =>
                 {
                     b.Property<int>("Codigo")
@@ -282,6 +315,9 @@ namespace CompenseAgora.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Codigo"));
 
+                    b.Property<bool>("Admin")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Bairro")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
@@ -407,6 +443,17 @@ namespace CompenseAgora.Data.Migrations
                     b.Navigation("CombustivelFossil");
                 });
 
+            modelBuilder.Entity("CompenseAgora.Entities.Compensacao", b =>
+                {
+                    b.HasOne("CompenseAgora.Entities.Pessoa", "Pessoa")
+                        .WithMany("Compensacoes")
+                        .HasForeignKey("CodigoPessoa")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Pessoa");
+                });
+
             modelBuilder.Entity("CompenseAgora.Entities.ConsumoMedioFrota", b =>
                 {
                     b.HasOne("CompenseAgora.Entities.Frota", "Frota")
@@ -513,6 +560,8 @@ namespace CompenseAgora.Data.Migrations
 
             modelBuilder.Entity("CompenseAgora.Entities.Pessoa", b =>
                 {
+                    b.Navigation("Compensacoes");
+
                     b.Navigation("Energias");
 
                     b.Navigation("Viagens");

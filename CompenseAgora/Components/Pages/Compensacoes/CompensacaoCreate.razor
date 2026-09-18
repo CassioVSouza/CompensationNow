@@ -1,0 +1,121 @@
+@page "/compensacoes/nova"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using CompenseAgora.Features.Compensacoes.Commands.CreateCompensacao
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Nova compensação</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Nova compensação</MudText>
+
+<MudPaper Class="pa-4" Elevation="1" Style="max-width: 640px;">
+    @if (_errorMessage is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+    }
+
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudDatePicker Label="Data de referência" @bind-Date="_dataReferencia" @bind-Date:after="ClearError"
+                           Variant="Variant.Outlined" Editable="true" DateFormat="dd/MM/yyyy"
+                           HelperText="Data em que a compensação foi realizada." />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudSelect T="string" Label="Tipo de compensação" @bind-Value="_input.TipoCompensacao" @bind-Value:after="ClearError"
+                       Variant="Variant.Outlined" Placeholder="Selecione um tipo...">
+                @foreach (var tipo in TiposCompensacao)
+                {
+                    <MudSelectItem T="string" Value="@tipo">@tipo</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="Quantidade compensada (t CO2e)"
+                              @bind-Value="_input.QuantidadeCompensada" @bind-Value:after="ClearError"
+                              Variant="Variant.Outlined" Min="0"
+                              HelperText="Quantidade de CO2 equivalente compensada, em toneladas." />
+        </MudItem>
+    </MudGrid>
+
+    <div class="d-flex gap-2 mt-4">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSaveAsync" Disabled="@_isSaving">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Salvar
+        </MudButton>
+        <MudButton Variant="Variant.Text" Href="/compensacoes" Disabled="@_isSaving">Cancelar</MudButton>
+    </div>
+</MudPaper>
+
+@code {
+    private static readonly string[] TiposCompensacao =
+        ["Créditos de carbono", "Reflorestamento", "Energia renovável", "Outro"];
+
+    private CompensacaoInputModel _input = new();
+    private DateTime? _dataReferencia = DateTime.Now;
+    private string? _errorMessage;
+    private bool _isSaving;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private void ClearError()
+    {
+        _input.DataReferencia = DateOnly.FromDateTime(_dataReferencia ?? DateTime.Now);
+        _errorMessage = null;
+    }
+
+    private async Task HandleSaveAsync()
+    {
+        _input.DataReferencia = DateOnly.FromDateTime(_dataReferencia ?? DateTime.Now);
+
+        if (string.IsNullOrWhiteSpace(_input.TipoCompensacao))
+        {
+            _errorMessage = "Selecione o tipo de compensação.";
+            return;
+        }
+
+        if (_input.QuantidadeCompensada <= 0)
+        {
+            _errorMessage = "Informe a quantidade compensada.";
+            return;
+        }
+
+        var authState = await AuthenticationStateTask!;
+        var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        _isSaving = true;
+        try
+        {
+            await Mediator.Send(new CreateCompensacaoCommand(
+                codigoPessoa, _input.DataReferencia, _input.TipoCompensacao, _input.QuantidadeCompensada));
+            Snackbar.Add("Compensação criada com sucesso.", Severity.Success);
+            NavigationManager.NavigateTo("/compensacoes");
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível salvar a compensação agora. Tente novamente em instantes.";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private class CompensacaoInputModel
+    {
+        public DateOnly DataReferencia { get; set; } = DateOnly.FromDateTime(DateTime.Now);
+        public string TipoCompensacao { get; set; } = string.Empty;
+        public decimal QuantidadeCompensada { get; set; }
+    }
+}

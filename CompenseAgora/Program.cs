@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using Amazon.CognitoIdentityProvider;
 using CompenseAgora.Auth;
@@ -9,8 +10,18 @@ using CompenseAgora.Features.Viagens.Calculo;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
+
+// This app has no multi-culture support (see CLAUDE.md: all user-facing text is pt-BR), so the
+// culture is fixed process-wide rather than negotiated per-request. Without this, number/date
+// parsing (MudNumericField, MudDatePicker, decimal.ToString/Parse) falls back to whatever culture
+// the host OS happens to be running under, which on a non-pt-BR host would accept "." instead of
+// "," as the decimal separator -- exactly backwards from what Brazilian users expect.
+var culturaPadrao = new CultureInfo("pt-BR");
+CultureInfo.DefaultThreadCurrentCulture = culturaPadrao;
+CultureInfo.DefaultThreadCurrentUICulture = culturaPadrao;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,6 +69,13 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(culturaPadrao),
+    SupportedCultures = [culturaPadrao],
+    SupportedUICultures = [culturaPadrao],
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

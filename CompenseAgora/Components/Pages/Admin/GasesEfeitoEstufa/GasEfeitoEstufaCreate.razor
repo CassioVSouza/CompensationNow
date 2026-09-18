@@ -1,0 +1,67 @@
+@page "/admin/gases-efeito-estufa/novo"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using CompenseAgora.Features.GasesEfeitoEstufa.Commands.CreateGasEfeitoEstufa
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Novo gás de efeito estufa</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Novo gás de efeito estufa</MudText>
+
+<MudPaper Class="pa-4" Elevation="1" Style="max-width: 600px;">
+    @if (_errorMessage is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+    }
+
+    <MudTextField T="string" Label="Nome" @bind-Value="_nome" Variant="Variant.Outlined" Class="mb-3"
+                  HelperText="Ex.: Dióxido de carbono (CO2)." />
+    <MudTextField T="string" Label="Família" @bind-Value="_familia" Variant="Variant.Outlined" Class="mb-3" />
+    <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="GWP (potencial de aquecimento global)" @bind-Value="_gwp"
+                      Variant="Variant.Outlined" Min="0" Class="mb-3" />
+
+    <div class="d-flex gap-2 mt-2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSaveAsync" Disabled="@_isSaving">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Salvar
+        </MudButton>
+        <MudButton Variant="Variant.Text" Href="/admin/gases-efeito-estufa" Disabled="@_isSaving">Cancelar</MudButton>
+    </div>
+</MudPaper>
+
+@code {
+    private string _nome = string.Empty;
+    private string _familia = string.Empty;
+    private decimal _gwp;
+    private string? _errorMessage;
+    private bool _isSaving;
+
+    private async Task HandleSaveAsync()
+    {
+        _isSaving = true;
+        try
+        {
+            await Mediator.Send(new CreateGasEfeitoEstufaCommand(_nome, _familia, _gwp));
+            Snackbar.Add("Gás cadastrado com sucesso.", Severity.Success);
+            NavigationManager.NavigateTo("/admin/gases-efeito-estufa");
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível salvar o gás agora. Tente novamente em instantes.";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

@@ -1,0 +1,101 @@
+@page "/admin/consumos-medio-frota/{Codigo:int}/excluir"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using CompenseAgora.Common.Exceptions
+@using CompenseAgora.Features.ConsumosMedioFrota
+@using CompenseAgora.Features.ConsumosMedioFrota.Commands.DeleteConsumoMedioFrota
+@using CompenseAgora.Features.ConsumosMedioFrota.Queries.GetConsumoMedioFrotaById
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Excluir consumo médio da frota</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Excluir consumo médio da frota</MudText>
+
+@if (_consumo is null)
+{
+    @if (!_notFound)
+    {
+        <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+            <span>Carregando…</span>
+        </div>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+            Este consumo médio não foi encontrado. Ele pode já ter sido excluído.
+        </MudAlert>
+        <MudButton Class="mt-3" Variant="Variant.Text" Href="/admin/consumos-medio-frota">Voltar para a lista</MudButton>
+    }
+}
+else
+{
+    <MudPaper Class="pa-4" Elevation="1" Style="max-width: 600px;">
+        @if (_errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+        }
+
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+            Tem certeza de que deseja excluir o consumo médio de <strong>@_consumo.NomeFrota (@_consumo.Ano)</strong>?
+            Esta ação não pode ser desfeita.
+        </MudAlert>
+
+        <div class="d-flex gap-2 mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="HandleDeleteAsync" Disabled="@_isDeleting">
+                @if (_isDeleting)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Excluir consumo médio
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/admin/consumos-medio-frota" Disabled="@_isDeleting">Cancelar</MudButton>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    [Parameter]
+    public int Codigo { get; set; }
+
+    private ConsumoMedioFrotaDto? _consumo;
+    private bool _notFound;
+    private bool _isDeleting;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _consumo = await Mediator.Send(new GetConsumoMedioFrotaByIdQuery(Codigo));
+        if (_consumo is null)
+        {
+            _notFound = true;
+        }
+    }
+
+    private async Task HandleDeleteAsync()
+    {
+        _isDeleting = true;
+        try
+        {
+            await Mediator.Send(new DeleteConsumoMedioFrotaCommand(Codigo));
+            Snackbar.Add("Consumo médio excluído com sucesso.", Severity.Success);
+            NavigationManager.NavigateTo("/admin/consumos-medio-frota");
+        }
+        catch (NotFoundException)
+        {
+            _notFound = true;
+            _consumo = null;
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível excluir o consumo médio agora. Tente novamente em instantes.";
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+}

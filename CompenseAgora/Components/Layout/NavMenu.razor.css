@@ -85,6 +85,42 @@
     border-color: rgba(255, 255, 255, 0.15);
 }
 
+/* Admin submenu: expand/collapse purely via CSS (checkbox + label), the same technique as
+   .navbar-toggler above -- MudNavGroup's own toggle needs a live SignalR circuit that this
+   static-SSR menu doesn't have. */
+.admin-nav-toggle {
+    display: none;
+}
+
+.admin-nav-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.admin-nav-toggle-text {
+    flex-grow: 1;
+}
+
+.admin-nav-toggle-chevron {
+    transition: transform 0.15s ease;
+}
+
+.admin-nav-toggle:checked + .admin-nav-toggle-label .admin-nav-toggle-chevron {
+    transform: rotate(180deg);
+}
+
+.admin-nav-links {
+    display: none;
+    padding-left: 1rem;
+}
+
+.admin-nav-toggle:checked ~ .admin-nav-links {
+    display: block;
+}
+
 @media (min-width: 641px) {
     .navbar-toggler {
         display: none;

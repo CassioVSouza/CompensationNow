@@ -1,0 +1,142 @@
+@page "/admin/frotas/{Codigo:int}/editar"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using CompenseAgora.Common.Exceptions
+@using CompenseAgora.Entities
+@using CompenseAgora.Features.Combustiveis
+@using CompenseAgora.Features.Combustiveis.Queries.GetTodosCombustiveis
+@using CompenseAgora.Features.Frotas.Commands.UpdateFrota
+@using CompenseAgora.Features.Frotas.Queries.GetFrotaById
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Editar frota</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Editar frota</MudText>
+
+@if (!_loaded)
+{
+    @if (!_notFound)
+    {
+        <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+            <span>Carregando frota…</span>
+        </div>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+            Esta frota não foi encontrada. Ela pode já ter sido excluída.
+        </MudAlert>
+        <MudButton Class="mt-3" Variant="Variant.Text" Href="/admin/frotas">Voltar para a lista</MudButton>
+    }
+}
+else
+{
+    <MudPaper Class="pa-4" Elevation="1" Style="max-width: 640px;">
+        @if (_errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+        }
+
+        <MudTextField T="string" Label="Nome" @bind-Value="_nome" Variant="Variant.Outlined" Class="mb-3" />
+
+        <MudSelect T="int" Label="Combustível primário" @bind-Value="_codigoCombustivelPrimario" Variant="Variant.Outlined" Class="mb-3">
+            @foreach (var combustivel in _combustiveis!)
+            {
+                <MudSelectItem T="int" Value="@combustivel.Codigo">@combustivel.Nome</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSelect T="int?" Label="Combustível biogênico (opcional)" @bind-Value="_codigoCombustivelBiogenico"
+                   Variant="Variant.Outlined" Clearable="true" Class="mb-3">
+            @foreach (var combustivel in _combustiveis!)
+            {
+                <MudSelectItem T="int?" Value="@combustivel.Codigo">@combustivel.Nome</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSelect T="int?" Label="Combustível fóssil (opcional)" @bind-Value="_codigoCombustivelFossil"
+                   Variant="Variant.Outlined" Clearable="true" Class="mb-3">
+            @foreach (var combustivel in _combustiveis!)
+            {
+                <MudSelectItem T="int?" Value="@combustivel.Codigo">@combustivel.Nome</MudSelectItem>
+            }
+        </MudSelect>
+
+        <div class="d-flex gap-2 mt-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSaveAsync" Disabled="@_isSaving">
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Salvar
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/admin/frotas" Disabled="@_isSaving">Cancelar</MudButton>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    [Parameter]
+    public int Codigo { get; set; }
+
+    private List<CombustivelDto>? _combustiveis;
+    private bool _loaded;
+    private bool _notFound;
+    private string _nome = string.Empty;
+    private int _codigoCombustivelPrimario;
+    private int? _codigoCombustivelBiogenico;
+    private int? _codigoCombustivelFossil;
+    private string? _errorMessage;
+    private bool _isSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _combustiveis = await Mediator.Send(new GetTodosCombustiveisQuery());
+
+        var frota = await Mediator.Send(new GetFrotaByIdQuery(Codigo));
+        if (frota is null)
+        {
+            _notFound = true;
+            return;
+        }
+
+        _nome = frota.Nome;
+        _codigoCombustivelPrimario = frota.CodigoCombustivelPrimario;
+        _codigoCombustivelBiogenico = frota.CodigoCombustivelBiogenico;
+        _codigoCombustivelFossil = frota.CodigoCombustivelFossil;
+        _loaded = true;
+    }
+
+    private async Task HandleSaveAsync()
+    {
+        _isSaving = true;
+        try
+        {
+            await Mediator.Send(new UpdateFrotaCommand(
+                Codigo, _nome, _codigoCombustivelPrimario, _codigoCombustivelBiogenico, _codigoCombustivelFossil));
+            Snackbar.Add("Frota atualizada com sucesso.", Severity.Success);
+            NavigationManager.NavigateTo("/admin/frotas");
+        }
+        catch (NotFoundException)
+        {
+            _notFound = true;
+            _loaded = false;
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _errorMessage = string.Join(" ", ex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível salvar a frota agora. Tente novamente em instantes.";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

@@ -1,0 +1,101 @@
+@page "/admin/frotas/{Codigo:int}/excluir"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@using CompenseAgora.Common.Exceptions
+@using CompenseAgora.Features.Frotas
+@using CompenseAgora.Features.Frotas.Commands.DeleteFrota
+@using CompenseAgora.Features.Frotas.Queries.GetFrotaById
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Excluir frota</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Excluir frota</MudText>
+
+@if (_frota is null)
+{
+    @if (!_notFound)
+    {
+        <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+            <span>Carregando frota…</span>
+        </div>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+            Esta frota não foi encontrada. Ela pode já ter sido excluída.
+        </MudAlert>
+        <MudButton Class="mt-3" Variant="Variant.Text" Href="/admin/frotas">Voltar para a lista</MudButton>
+    }
+}
+else
+{
+    <MudPaper Class="pa-4" Elevation="1" Style="max-width: 640px;">
+        @if (_errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
+        }
+
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+            Tem certeza de que deseja excluir <strong>@_frota.Nome</strong>? Frotas usadas em viagens ou consumos
+            médios cadastrados não podem ser excluídas. Esta ação não pode ser desfeita.
+        </MudAlert>
+
+        <div class="d-flex gap-2 mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="HandleDeleteAsync" Disabled="@_isDeleting">
+                @if (_isDeleting)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Excluir frota
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/admin/frotas" Disabled="@_isDeleting">Cancelar</MudButton>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    [Parameter]
+    public int Codigo { get; set; }
+
+    private FrotaDto? _frota;
+    private bool _notFound;
+    private bool _isDeleting;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _frota = await Mediator.Send(new GetFrotaByIdQuery(Codigo));
+        if (_frota is null)
+        {
+            _notFound = true;
+        }
+    }
+
+    private async Task HandleDeleteAsync()
+    {
+        _isDeleting = true;
+        try
+        {
+            await Mediator.Send(new DeleteFrotaCommand(Codigo));
+            Snackbar.Add("Frota excluída com sucesso.", Severity.Success);
+            NavigationManager.NavigateTo("/admin/frotas");
+        }
+        catch (NotFoundException)
+        {
+            _notFound = true;
+            _frota = null;
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Não foi possível excluir a frota agora. Ela pode estar em uso por outros registros.";
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+}
