@@ -97,6 +97,33 @@ public class LoginCommandHandlerTests
         Assert.Equal("Silva", result.Sobrenome);
         Assert.Equal("ana@example.com", result.Email);
         Assert.Equal("sub-ana", result.CognitoSub);
+        Assert.False(result.Admin);
+    }
+
+    [Fact]
+    public async Task Handle_PropagatesAdminFlag_WhenPessoaIsAdmin()
+    {
+        using var factory = new SqliteDbContextFactory();
+        await using var seedContext = factory.CreateContext();
+
+        var pessoa = new Pessoa
+        {
+            Nome = "Ana",
+            Sobrenome = "Silva",
+            Email = "ana@example.com",
+            CognitoSub = "sub-ana",
+            Admin = true,
+        };
+        seedContext.Pessoas.Add(pessoa);
+        await seedContext.SaveChangesAsync();
+
+        await using var dbContext = factory.CreateContext();
+        var cognitoMock = MockSuccessfulLogin();
+        var handler = new LoginCommandHandler(CreateCognitoAuthService(cognitoMock), dbContext);
+
+        var result = await handler.Handle(new LoginCommand("ana@example.com", "Password1!"), CancellationToken.None);
+
+        Assert.True(result.Admin);
     }
 
     [Fact]

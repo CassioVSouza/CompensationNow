@@ -36,6 +36,16 @@ public class GetDashboardQueryTests
             EmissaoCO2 = emissao,
         };
 
+    private static Compensacao NewCompensacao(int codigoPessoa, DateOnly dataReferencia, decimal quantidade) =>
+        new()
+        {
+            CodigoPessoa = codigoPessoa,
+            DataReferencia = dataReferencia,
+            CriadoEm = dataReferencia,
+            TipoCompensacao = "Outro",
+            QuantidadeCompensada = quantidade,
+        };
+
     [Fact]
     public async Task Handle_ReturnsTwelveZeroFilledMonths_WhenPersonHasNoRecords()
     {
@@ -53,11 +63,13 @@ public class GetDashboardQueryTests
         {
             Assert.Equal(0m, m.ViagemEmissao);
             Assert.Equal(0m, m.EnergiaEmissao);
+            Assert.Equal(0m, m.Compensacao);
             Assert.Equal(0m, m.Total);
         });
         Assert.Equal(0m, dto.TotalEmissao);
         Assert.Equal(0m, dto.TotalViagem);
         Assert.Equal(0m, dto.TotalEnergia);
+        Assert.Equal(0m, dto.TotalCompensacao);
 
         var currentMonthStart = CurrentMonthStart();
         var windowStart = currentMonthStart.AddMonths(-11);
@@ -87,6 +99,9 @@ public class GetDashboardQueryTests
         // A month in the middle: Energia only.
         seedContext.Energias.Add(NewEnergia(pessoa.Codigo, midMonth, 7m));
 
+        // Current month also has a compensation record.
+        seedContext.Compensacoes.Add(NewCompensacao(pessoa.Codigo, currentMonthStart, 4m));
+
         await seedContext.SaveChangesAsync();
 
         await using var dbContext = factory.CreateContext();
@@ -109,11 +124,13 @@ public class GetDashboardQueryTests
         Assert.Equal((currentMonthStart.Year, currentMonthStart.Month), (lastMonth.Year, lastMonth.Month));
         Assert.Equal(10m, lastMonth.ViagemEmissao);
         Assert.Equal(3m, lastMonth.EnergiaEmissao);
+        Assert.Equal(4m, lastMonth.Compensacao);
         Assert.Equal(13m, lastMonth.Total);
 
         Assert.Equal(15m, dto.TotalViagem);
         Assert.Equal(10m, dto.TotalEnergia);
         Assert.Equal(25m, dto.TotalEmissao);
+        Assert.Equal(4m, dto.TotalCompensacao);
 
         // Ascending chronological order across all 12 entries.
         for (var i = 1; i < dto.MonthlyEmissions.Count; i++)
@@ -185,8 +202,101 @@ public class GetDashboardQueryTests
     [Fact]
     public void MonthlyEmissionDto_Total_EqualsSumOfViagemAndEnergiaEmissao()
     {
-        var dto = new MonthlyEmissionDto(2026, 3, 12.5m, 7.25m);
+        var dto = new MonthlyEmissionDto(2026, 3, 12.5m, 7.25m, 5m);
 
         Assert.Equal(19.75m, dto.Total);
+    }
+
+    [Fact]
+    public async Task Handle_WithExplicitDateRange_ZeroFillsOnlyMonthsIntersectingRange()
+    {
+        using var factory = new SqliteDbContextFactory();
+        await using var seedContext = factory.CreateContext();
+        var pessoa = TestDataFactory.CreatePessoa(seedContext);
+        var frota = TestDataFactory.CreateFrota(seedContext);
+
+        // Explicit 3-month range: Jan, Feb, Mar 2026.
+        var inicio = new DateOnly(2026, 1, 1);
+        var fim = new DateOnly(2026, 3, 31);
+
+        seedContext.Viagens.Add(NewViagem(pessoa.Codigo, frota.Codigo, new DateOnly(2026, 2, 15), 8m));
+
+        await seedContext.SaveChangesAsync();
+
+        await using var dbContext = factory.CreateContext();
+        var handler = new GetDashboardQueryHandler(dbContext);
+
+        var dto = await handler.Handle(new GetDashboardQuery(pessoa.Codigo, inicio, fim), CancellationToken.None);
+
+        Assert.Equal(3, dto.MonthlyEmissions.Count);
+        Assert.Equal((2026, 1), (dto.MonthlyEmissions[0].Year, dto.MonthlyEmissions[0].Month));
+        Assert.Equal((2026, 2), (dto.MonthlyEmissions[1].Year, dto.MonthlyEmissions[1].Month));
+        Assert.Equal((2026, 3), (dto.MonthlyEmissions[2].Year, dto.MonthlyEmissions[2].Month));
+
+        Assert.Equal(0m, dto.MonthlyEmissions[0].ViagemEmissao);
+        Assert.Equal(8m, dto.MonthlyEmissions[1].ViagemEmissao);
+        Assert.Equal(0m, dto.MonthlyEmissions[2].ViagemEmissao);
+        Assert.Equal(8m, dto.TotalViagem);
+    }
+
+    [Fact]
+    public async Task Handle_WithExplicitDateRange_ExcludesRecordsOutsideRange_EvenWithinAPartiallyIncludedMonth()
+    {
+        using var factory = new SqliteDbContextFactory();
+        await using var seedContext = factory.CreateContext();
+        var pessoa = TestDataFactory.CreatePessoa(seedContext);
+        var frota = TestDataFactory.CreateFrota(seedContext);
+
+        // Range spans mid-January to mid-February: the calendar-month bucket for January still
+        // gets zero-filled, but a record from *before* DataInicio inside that same month must
+        // still be excluded from the sums.
+        var inicio = new DateOnly(2026, 1, 15);
+        var fim = new DateOnly(2026, 2, 15);
+
+        // Before the range, but within the January bucket month - must be excluded.
+        seedContext.Viagens.Add(NewViagem(pessoa.Codigo, frota.Codigo, new DateOnly(2026, 1, 5), 100m));
+
+        // Inside the range - must be included.
+        seedContext.Viagens.Add(NewViagem(pessoa.Codigo, frota.Codigo, new DateOnly(2026, 1, 20), 3m));
+
+        // After the range, but within the February bucket month - must be excluded.
+        seedContext.Energias.Add(NewEnergia(pessoa.Codigo, new DateOnly(2026, 2, 20), 200m));
+
+        await seedContext.SaveChangesAsync();
+
+        await using var dbContext = factory.CreateContext();
+        var handler = new GetDashboardQueryHandler(dbContext);
+
+        var dto = await handler.Handle(new GetDashboardQuery(pessoa.Codigo, inicio, fim), CancellationToken.None);
+
+        Assert.Equal(2, dto.MonthlyEmissions.Count);
+        Assert.Equal(3m, dto.MonthlyEmissions[0].ViagemEmissao);
+        Assert.Equal(0m, dto.MonthlyEmissions[1].EnergiaEmissao);
+        Assert.Equal(3m, dto.TotalViagem);
+        Assert.Equal(0m, dto.TotalEnergia);
+    }
+
+    [Fact]
+    public async Task Handle_WithExplicitDateRange_IncludesRecordsExactlyOnBoundaryDates()
+    {
+        using var factory = new SqliteDbContextFactory();
+        await using var seedContext = factory.CreateContext();
+        var pessoa = TestDataFactory.CreatePessoa(seedContext);
+        var frota = TestDataFactory.CreateFrota(seedContext);
+
+        var inicio = new DateOnly(2026, 1, 10);
+        var fim = new DateOnly(2026, 1, 20);
+
+        seedContext.Viagens.Add(NewViagem(pessoa.Codigo, frota.Codigo, inicio, 2m));
+        seedContext.Viagens.Add(NewViagem(pessoa.Codigo, frota.Codigo, fim, 5m));
+
+        await seedContext.SaveChangesAsync();
+
+        await using var dbContext = factory.CreateContext();
+        var handler = new GetDashboardQueryHandler(dbContext);
+
+        var dto = await handler.Handle(new GetDashboardQuery(pessoa.Codigo, inicio, fim), CancellationToken.None);
+
+        Assert.Equal(7m, dto.TotalViagem);
     }
 }

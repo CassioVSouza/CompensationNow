@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CompenseAgora.Features.Compensacoes.Queries.GetCompensacoes;
 
-public record GetCompensacoesQuery(int CodigoPessoa) : IRequest<List<CompensacaoDto>>;
+public record GetCompensacoesQuery(int CodigoPessoa, DateOnly? DataInicio = null, DateOnly? DataFim = null) : IRequest<List<CompensacaoDto>>;
 
 public class GetCompensacoesQueryHandler(CompenseAgoraDbContext dbContext)
     : IRequestHandler<GetCompensacoesQuery, List<CompensacaoDto>>
@@ -13,7 +13,9 @@ public class GetCompensacoesQueryHandler(CompenseAgoraDbContext dbContext)
     {
         return dbContext.Compensacoes
             .AsNoTracking()
-            .Where(c => c.CodigoPessoa == request.CodigoPessoa)
+            .Where(c => c.CodigoPessoa == request.CodigoPessoa
+                        && (request.DataInicio == null || c.DataReferencia >= request.DataInicio)
+                        && (request.DataFim == null || c.DataReferencia <= request.DataFim))
             .OrderByDescending(c => c.DataReferencia)
             .Select(c => new CompensacaoDto(
                 c.Codigo,

@@ -87,4 +87,51 @@ public class GetEnergiasQueryTests
 
         Assert.Empty(results);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsAllTimeUnfiltered_WhenNoDateArgsGiven()
+    {
+        using var factory = new SqliteDbContextFactory();
+        await using var seedContext = factory.CreateContext();
+        var pessoa = TestDataFactory.CreatePessoa(seedContext);
+
+        seedContext.Energias.AddRange(
+            new Energia { CodigoPessoa = pessoa.Codigo, CriadoEm = new DateOnly(2020, 1, 1), DataReferencia = new DateOnly(2020, 1, 1), Quantidade = 1m, EmissaoCO2 = 0m },
+            new Energia { CodigoPessoa = pessoa.Codigo, CriadoEm = new DateOnly(2030, 1, 1), DataReferencia = new DateOnly(2030, 1, 1), Quantidade = 2m, EmissaoCO2 = 0m });
+        await seedContext.SaveChangesAsync();
+
+        await using var dbContext = factory.CreateContext();
+        var handler = new GetEnergiasQueryHandler(dbContext);
+
+        var results = await handler.Handle(new GetEnergiasQuery(pessoa.Codigo), CancellationToken.None);
+
+        Assert.Equal(2, results.Count);
+    }
+
+    [Fact]
+    public async Task Handle_WithDateRange_ReturnsOnlyRecordsWithinRange_InclusiveOfBoundaries()
+    {
+        using var factory = new SqliteDbContextFactory();
+        await using var seedContext = factory.CreateContext();
+        var pessoa = TestDataFactory.CreatePessoa(seedContext);
+
+        var inicio = new DateOnly(2026, 2, 1);
+        var fim = new DateOnly(2026, 2, 28);
+
+        seedContext.Energias.AddRange(
+            new Energia { CodigoPessoa = pessoa.Codigo, CriadoEm = inicio, DataReferencia = inicio.AddDays(-1), Quantidade = 1m, EmissaoCO2 = 0m }, // just before range
+            new Energia { CodigoPessoa = pessoa.Codigo, CriadoEm = inicio, DataReferencia = inicio, Quantidade = 2m, EmissaoCO2 = 0m }, // exactly on DataInicio
+            new Energia { CodigoPessoa = pessoa.Codigo, CriadoEm = inicio, DataReferencia = new DateOnly(2026, 2, 15), Quantidade = 3m, EmissaoCO2 = 0m }, // inside range
+            new Energia { CodigoPessoa = pessoa.Codigo, CriadoEm = inicio, DataReferencia = fim, Quantidade = 4m, EmissaoCO2 = 0m }, // exactly on DataFim
+            new Energia { CodigoPessoa = pessoa.Codigo, CriadoEm = inicio, DataReferencia = fim.AddDays(1), Quantidade = 5m, EmissaoCO2 = 0m }); // just after range
+        await seedContext.SaveChangesAsync();
+
+        await using var dbContext = factory.CreateContext();
+        var handler = new GetEnergiasQueryHandler(dbContext);
+
+        var results = await handler.Handle(new GetEnergiasQuery(pessoa.Codigo, inicio, fim), CancellationToken.None);
+
+        Assert.Equal(3, results.Count);
+        Assert.All(results, r => Assert.InRange(r.DataReferencia.ToDateTime(TimeOnly.MinValue), inicio.ToDateTime(TimeOnly.MinValue), fim.ToDateTime(TimeOnly.MinValue)));
+    }
 }

@@ -128,4 +128,53 @@ public class GetViagensQueryTests
 
         Assert.Empty(results);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsAllTimeUnfiltered_WhenNoDateArgsGiven()
+    {
+        using var factory = new SqliteDbContextFactory();
+        await using var seedContext = factory.CreateContext();
+        var pessoa = TestDataFactory.CreatePessoa(seedContext);
+        var frota = TestDataFactory.CreateFrota(seedContext);
+
+        seedContext.Viagens.AddRange(
+            new Viagem { CodigoPessoa = pessoa.Codigo, CodigoFrota = frota.Codigo, CriadoEm = new DateOnly(2020, 1, 1), DataReferencia = new DateOnly(2020, 1, 1), Consumo = 1m, AnoFrota = 2020, DistanciaKM = 10m, EmissaoCO2 = 0m },
+            new Viagem { CodigoPessoa = pessoa.Codigo, CodigoFrota = frota.Codigo, CriadoEm = new DateOnly(2030, 1, 1), DataReferencia = new DateOnly(2030, 1, 1), Consumo = 2m, AnoFrota = 2020, DistanciaKM = 20m, EmissaoCO2 = 0m });
+        await seedContext.SaveChangesAsync();
+
+        await using var dbContext = factory.CreateContext();
+        var handler = new GetViagensQueryHandler(dbContext);
+
+        var results = await handler.Handle(new GetViagensQuery(pessoa.Codigo), CancellationToken.None);
+
+        Assert.Equal(2, results.Count);
+    }
+
+    [Fact]
+    public async Task Handle_WithDateRange_ReturnsOnlyRecordsWithinRange_InclusiveOfBoundaries()
+    {
+        using var factory = new SqliteDbContextFactory();
+        await using var seedContext = factory.CreateContext();
+        var pessoa = TestDataFactory.CreatePessoa(seedContext);
+        var frota = TestDataFactory.CreateFrota(seedContext);
+
+        var inicio = new DateOnly(2026, 2, 1);
+        var fim = new DateOnly(2026, 2, 28);
+
+        seedContext.Viagens.AddRange(
+            new Viagem { CodigoPessoa = pessoa.Codigo, CodigoFrota = frota.Codigo, CriadoEm = inicio, DataReferencia = inicio.AddDays(-1), Consumo = 1m, AnoFrota = 2020, DistanciaKM = 10m, EmissaoCO2 = 0m }, // just before range
+            new Viagem { CodigoPessoa = pessoa.Codigo, CodigoFrota = frota.Codigo, CriadoEm = inicio, DataReferencia = inicio, Consumo = 2m, AnoFrota = 2020, DistanciaKM = 20m, EmissaoCO2 = 0m }, // exactly on DataInicio
+            new Viagem { CodigoPessoa = pessoa.Codigo, CodigoFrota = frota.Codigo, CriadoEm = inicio, DataReferencia = new DateOnly(2026, 2, 15), Consumo = 3m, AnoFrota = 2020, DistanciaKM = 30m, EmissaoCO2 = 0m }, // inside range
+            new Viagem { CodigoPessoa = pessoa.Codigo, CodigoFrota = frota.Codigo, CriadoEm = inicio, DataReferencia = fim, Consumo = 4m, AnoFrota = 2020, DistanciaKM = 40m, EmissaoCO2 = 0m }, // exactly on DataFim
+            new Viagem { CodigoPessoa = pessoa.Codigo, CodigoFrota = frota.Codigo, CriadoEm = inicio, DataReferencia = fim.AddDays(1), Consumo = 5m, AnoFrota = 2020, DistanciaKM = 50m, EmissaoCO2 = 0m }); // just after range
+        await seedContext.SaveChangesAsync();
+
+        await using var dbContext = factory.CreateContext();
+        var handler = new GetViagensQueryHandler(dbContext);
+
+        var results = await handler.Handle(new GetViagensQuery(pessoa.Codigo, inicio, fim), CancellationToken.None);
+
+        Assert.Equal(3, results.Count);
+        Assert.All(results, r => Assert.InRange(r.DataReferencia.ToDateTime(TimeOnly.MinValue), inicio.ToDateTime(TimeOnly.MinValue), fim.ToDateTime(TimeOnly.MinValue)));
+    }
 }

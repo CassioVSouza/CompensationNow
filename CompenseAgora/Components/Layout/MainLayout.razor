@@ -16,7 +16,7 @@
     </div>
 
     <main>
-        <div class="top-row px-4">
+        <div id="top" class="top-row px-4">
             <AuthorizeView Context="authState">
                 <Authorized>
                     <span>Olá, @authState.User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value</span>
@@ -27,6 +27,11 @@
         <article class="content px-4">
             @Body
         </article>
+
+        <footer class="app-footer px-4">
+            <span>&copy; @DateTime.Now.Year Compense Agora. Todos os direitos reservados.</span>
+            <a href="#top" class="app-footer-back-to-top">Voltar ao topo ↑</a>
+        </footer>
     </main>
 </div>
 

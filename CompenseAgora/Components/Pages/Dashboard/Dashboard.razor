@@ -14,14 +14,16 @@
 
 <h1 class="mb-3">Painel</h1>
 
-@if (_dashboard is null)
+<FiltroPeriodo OnFiltroAplicado="AoAplicarFiltroAsync" />
+
+@if (_carregando || _dashboard is null)
 {
     <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
         <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
         <span>Carregando seu painel…</span>
     </div>
 }
-else if (_dashboard.TotalEmissao == 0)
+else if (_dashboard.TotalEmissao == 0 && _dashboard.TotalCompensacao == 0)
 {
     <MudPaper Class="pa-6 d-flex flex-column align-items-center text-center" Elevation="0" Outlined="true">
         <MudIcon Icon="@Icons.Material.Filled.Insights" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
@@ -105,6 +107,8 @@ else
 
 @code {
     private DashboardDto? _dashboard;
+    private bool _carregando = true;
+    private int _codigoPessoa;
     private string[] _monthLabels = [];
     private List<ChartSeries<double>> _totalSeries = [];
     private List<ChartSeries<double>> _splitSeries = [];
@@ -123,9 +127,22 @@ else
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateTask!;
-        var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        _codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        _dashboard = await Mediator.Send(new GetDashboardQuery(codigoPessoa));
+        await CarregarDadosAsync();
+    }
+
+    private async Task AoAplicarFiltroAsync((DateOnly Inicio, DateOnly Fim) intervalo)
+    {
+        await CarregarDadosAsync(intervalo.Inicio, intervalo.Fim);
+    }
+
+    private async Task CarregarDadosAsync(DateOnly? inicio = null, DateOnly? fim = null)
+    {
+        _carregando = true;
+        StateHasChanged();
+
+        _dashboard = await Mediator.Send(new GetDashboardQuery(_codigoPessoa, inicio, fim));
 
         _monthLabels = _dashboard.MonthlyEmissions
             .Select(m => new DateTime(m.Year, m.Month, 1).ToString("MMM/yy", CultureInfo.InvariantCulture))
@@ -193,6 +210,11 @@ else
             }
         ];
 
+        var maiorTotal = _totalSeries[0].Data.DefaultIfEmpty(0).Max();
+        var maiorViagem = _viagemSeries[0].Data.DefaultIfEmpty(0).Max();
+        var maiorEnergia = _energiaSeries[0].Data.DefaultIfEmpty(0).Max();
+        var maiorEmitidoCompensado = _emitidoCompensadoSeries.SelectMany(s => s.Data).DefaultIfEmpty(0).Max();
+
         _lineOptions = new LineChartOptions
         {
             ChartPalette = [CompenseAgoraTheme.TrendColor],
@@ -201,6 +223,7 @@ else
             YAxisRequireZeroPoint = true,
             YAxisTitle = "t CO2e",
             YAxisToStringFunc = v => v.ToString("N3"),
+            YAxisTicks = EscalaEixoY.CalcularEspacamento(maiorTotal),
             XAxisLabelRotation = -45,
         };
 
@@ -212,6 +235,7 @@ else
             YAxisRequireZeroPoint = true,
             YAxisTitle = "t CO2e",
             YAxisToStringFunc = v => v.ToString("N3"),
+            YAxisTicks = EscalaEixoY.CalcularEspacamento(maiorViagem),
             XAxisLabelRotation = -45,
         };
 
@@ -223,6 +247,7 @@ else
             YAxisRequireZeroPoint = true,
             YAxisTitle = "t CO2e",
             YAxisToStringFunc = v => v.ToString("N3"),
+            YAxisTicks = EscalaEixoY.CalcularEspacamento(maiorEnergia),
             XAxisLabelRotation = -45,
         };
 
@@ -233,6 +258,7 @@ else
             ShowValues = false,
             YAxisTitle = "t CO2e",
             YAxisToStringFunc = v => v.ToString("N3"),
+            YAxisTicks = EscalaEixoY.CalcularEspacamento(maiorTotal),
             XAxisLabelRotation = -45,
         };
 
@@ -244,7 +270,10 @@ else
             YAxisRequireZeroPoint = true,
             YAxisTitle = "t CO2e",
             YAxisToStringFunc = v => v.ToString("N3"),
+            YAxisTicks = EscalaEixoY.CalcularEspacamento(maiorEmitidoCompensado),
             XAxisLabelRotation = -45,
         };
+
+        _carregando = false;
     }
 }

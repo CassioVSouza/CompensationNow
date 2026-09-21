@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CompenseAgora.Features.Viagens.Queries.GetViagens;
 
-public record GetViagensQuery(int CodigoPessoa) : IRequest<List<ViagemDto>>;
+public record GetViagensQuery(int CodigoPessoa, DateOnly? DataInicio = null, DateOnly? DataFim = null) : IRequest<List<ViagemDto>>;
 
 public class GetViagensQueryHandler(CompenseAgoraDbContext dbContext)
     : IRequestHandler<GetViagensQuery, List<ViagemDto>>
@@ -13,7 +13,9 @@ public class GetViagensQueryHandler(CompenseAgoraDbContext dbContext)
     {
         return dbContext.Viagens
             .AsNoTracking()
-            .Where(v => v.CodigoPessoa == request.CodigoPessoa)
+            .Where(v => v.CodigoPessoa == request.CodigoPessoa
+                        && (request.DataInicio == null || v.DataReferencia >= request.DataInicio)
+                        && (request.DataFim == null || v.DataReferencia <= request.DataFim))
             .OrderByDescending(v => v.DataReferencia)
             .Select(v => new ViagemDto(
                 v.Codigo,

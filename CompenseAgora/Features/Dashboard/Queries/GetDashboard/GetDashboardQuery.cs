@@ -4,17 +4,30 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CompenseAgora.Features.Dashboard.Queries.GetDashboard;
 
-public record GetDashboardQuery(int CodigoPessoa) : IRequest<DashboardDto>;
+public record GetDashboardQuery(int CodigoPessoa, DateOnly? DataInicio = null, DateOnly? DataFim = null) : IRequest<DashboardDto>;
 
 public class GetDashboardQueryHandler(CompenseAgoraDbContext dbContext)
     : IRequestHandler<GetDashboardQuery, DashboardDto>
 {
     public async Task<DashboardDto> Handle(GetDashboardQuery request, CancellationToken cancellationToken)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var currentMonthStart = new DateOnly(today.Year, today.Month, 1);
-        var windowStart = currentMonthStart.AddMonths(-11);
-        var windowEndExclusive = currentMonthStart.AddMonths(1);
+        DateOnly windowStart;
+        DateOnly windowEnd;
+
+        if (request.DataInicio is not null && request.DataFim is not null)
+        {
+            windowStart = request.DataInicio.Value;
+            windowEnd = request.DataFim.Value;
+        }
+        else
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var currentMonthStart = new DateOnly(today.Year, today.Month, 1);
+            windowStart = currentMonthStart.AddMonths(-11);
+            windowEnd = currentMonthStart.AddMonths(1).AddDays(-1);
+        }
+
+        var windowEndExclusive = windowEnd.AddDays(1);
 
         var viagemRecords = await dbContext.Viagens
             .AsNoTracking()
@@ -53,7 +66,9 @@ public class GetDashboardQueryHandler(CompenseAgoraDbContext dbContext)
             .ToDictionary(g => g.Key, g => g.Sum(c => c.QuantidadeCompensada));
 
         var monthlyEmissions = new List<MonthlyEmissionDto>();
-        for (var monthStart = windowStart; monthStart <= currentMonthStart; monthStart = monthStart.AddMonths(1))
+        var firstMonthStart = new DateOnly(windowStart.Year, windowStart.Month, 1);
+        var lastMonthStart = new DateOnly(windowEnd.Year, windowEnd.Month, 1);
+        for (var monthStart = firstMonthStart; monthStart <= lastMonthStart; monthStart = monthStart.AddMonths(1))
         {
             var key = (monthStart.Year, monthStart.Month);
             var viagemEmissao = viagemByMonth.GetValueOrDefault(key);

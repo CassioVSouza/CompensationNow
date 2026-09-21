@@ -76,8 +76,19 @@
 @code {
     private string? _errorMessage;
 
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
     [SupplyParameterFromForm]
     public InputModel Input { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        if (HttpContext.User.Identity?.IsAuthenticated == true)
+        {
+            NavigationManager.NavigateTo("/");
+        }
+    }
 
     private async Task HandleRegisterAsync()
     {

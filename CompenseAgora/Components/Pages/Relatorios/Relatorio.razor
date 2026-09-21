@@ -4,6 +4,7 @@
 @using System.Globalization
 @using System.Security.Claims
 @using CompenseAgora.Common
+@using CompenseAgora.Features.Common
 @using CompenseAgora.Features.Dashboard
 @using CompenseAgora.Features.Dashboard.Queries.GetDashboard
 @using CompenseAgora.Features.Viagens
@@ -29,7 +30,11 @@
     </MudButton>
 </div>
 
-@if (_dashboard is null)
+<div class="no-print">
+    <FiltroPeriodo OnFiltroAplicado="AoAplicarFiltroAsync" />
+</div>
+
+@if (_carregando || _dashboard is null)
 {
     <div class="d-flex align-items-center gap-3 py-5 no-print" role="status" aria-live="polite">
         <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
@@ -57,7 +62,7 @@ else
             </MudText>
         </MudPaper>
 
-        @if (_dashboard.TotalEmissao == 0)
+        @if (_dashboard.TotalEmissao == 0 && _dashboard.TotalCompensacao == 0)
         {
             <MudPaper Class="pa-6 d-flex flex-column align-items-center text-center" Elevation="0" Outlined="true">
                 <MudIcon Icon="@Icons.Material.Filled.Insights" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
@@ -208,6 +213,8 @@ else
 
 @code {
     private DashboardDto? _dashboard;
+    private bool _carregando = true;
+    private int _codigoPessoa;
     private List<ViagemDto> _viagens = [];
     private List<EnergiaDto> _energias = [];
     private List<CompensacaoDto> _compensacoes = [];
@@ -231,29 +238,42 @@ else
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateTask!;
-        var codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        _codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var nome = authState.User.FindFirstValue(ClaimTypes.GivenName);
         var sobrenome = authState.User.FindFirstValue(ClaimTypes.Surname);
         _nomeCompleto = $"{nome} {sobrenome}".Trim();
 
-        _dashboard = await Mediator.Send(new GetDashboardQuery(codigoPessoa));
-        _viagens = await Mediator.Send(new GetViagensQuery(codigoPessoa));
-        _energias = await Mediator.Send(new GetEnergiasQuery(codigoPessoa));
-        _compensacoes = await Mediator.Send(new GetCompensacoesQuery(codigoPessoa));
+        await CarregarDadosAsync();
+    }
+
+    private async Task AoAplicarFiltroAsync((DateOnly Inicio, DateOnly Fim) intervalo)
+    {
+        await CarregarDadosAsync(intervalo.Inicio, intervalo.Fim);
+    }
+
+    private async Task CarregarDadosAsync(DateOnly? inicio = null, DateOnly? fim = null)
+    {
+        _carregando = true;
+        StateHasChanged();
+
+        _dashboard = await Mediator.Send(new GetDashboardQuery(_codigoPessoa, inicio, fim));
+        _viagens = await Mediator.Send(new GetViagensQuery(_codigoPessoa, inicio, fim));
+        _energias = await Mediator.Send(new GetEnergiasQuery(_codigoPessoa, inicio, fim));
+        _compensacoes = await Mediator.Send(new GetCompensacoesQuery(_codigoPessoa, inicio, fim));
+
+        // Describe the period from the resolved filter range itself, not by reverse-engineering it
+        // from the returned data — when no filter has been applied yet, mirror the dashboard's own
+        // default (last 12 months) so the description matches what's actually shown.
+        var (periodoInicio, periodoFim) = inicio is not null && fim is not null
+            ? (inicio.Value, fim.Value)
+            : FiltroPeriodoHelper.CalcularIntervalo(TipoPeriodoFiltro.Ultimos12Meses, null, null, null, null);
+
+        _periodoDescricao =
+            $"{periodoInicio.ToString("dd/MM/yyyy", CulturaBrasileira.PtBr)} a {periodoFim.ToString("dd/MM/yyyy", CulturaBrasileira.PtBr)}";
 
         _monthLabels = _dashboard.MonthlyEmissions
             .Select(m => new DateTime(m.Year, m.Month, 1).ToString("MMM/yy", CultureInfo.InvariantCulture))
             .ToArray();
-
-        if (_dashboard.MonthlyEmissions.Count > 0)
-        {
-            var primeiro = _dashboard.MonthlyEmissions[0];
-            var ultimo = _dashboard.MonthlyEmissions[^1];
-            var culturaPt = CultureInfo.GetCultureInfo("pt-BR");
-            _periodoDescricao =
-                $"{new DateTime(primeiro.Year, primeiro.Month, 1).ToString("MMMM/yyyy", culturaPt)} a " +
-                $"{new DateTime(ultimo.Year, ultimo.Month, 1).ToString("MMMM/yyyy", culturaPt)}";
-        }
 
         _totalSeries =
         [
@@ -317,6 +337,11 @@ else
             }
         ];
 
+        var maiorTotal = _totalSeries[0].Data.DefaultIfEmpty(0).Max();
+        var maiorViagem = _viagemSeries[0].Data.DefaultIfEmpty(0).Max();
+        var maiorEnergia = _energiaSeries[0].Data.DefaultIfEmpty(0).Max();
+        var maiorEmitidoCompensado = _emitidoCompensadoSeries.SelectMany(s => s.Data).DefaultIfEmpty(0).Max();
+
         _lineOptions = new LineChartOptions
         {
             ChartPalette = [CompenseAgoraTheme.TrendColor],
@@ -325,6 +350,7 @@ else
             YAxisRequireZeroPoint = true,
             YAxisTitle = "t CO2e",
             YAxisToStringFunc = v => v.ToString("N3"),
+            YAxisTicks = EscalaEixoY.CalcularEspacamento(maiorTotal),
             XAxisLabelRotation = -45,
         };
 
@@ -336,6 +362,7 @@ else
             YAxisRequireZeroPoint = true,
             YAxisTitle = "t CO2e",
             YAxisToStringFunc = v => v.ToString("N3"),
+            YAxisTicks = EscalaEixoY.CalcularEspacamento(maiorViagem),
             XAxisLabelRotation = -45,
         };
 
@@ -347,6 +374,7 @@ else
             YAxisRequireZeroPoint = true,
             YAxisTitle = "t CO2e",
             YAxisToStringFunc = v => v.ToString("N3"),
+            YAxisTicks = EscalaEixoY.CalcularEspacamento(maiorEnergia),
             XAxisLabelRotation = -45,
         };
 
@@ -357,6 +385,7 @@ else
             ShowValues = false,
             YAxisTitle = "t CO2e",
             YAxisToStringFunc = v => v.ToString("N3"),
+            YAxisTicks = EscalaEixoY.CalcularEspacamento(maiorTotal),
             XAxisLabelRotation = -45,
         };
 
@@ -368,8 +397,11 @@ else
             YAxisRequireZeroPoint = true,
             YAxisTitle = "t CO2e",
             YAxisToStringFunc = v => v.ToString("N3"),
+            YAxisTicks = EscalaEixoY.CalcularEspacamento(maiorEmitidoCompensado),
             XAxisLabelRotation = -45,
         };
+
+        _carregando = false;
     }
 
     private async Task BaixarRelatorioAsync()

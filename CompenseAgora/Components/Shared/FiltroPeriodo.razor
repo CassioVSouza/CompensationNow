@@ -1,0 +1,129 @@
+@using CompenseAgora.Features.Common
+@using System.Globalization
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="TipoPeriodoFiltro" Label="Período" @bind-Value="_tipo" @bind-Value:after="AoMudarTipo"
+                       Variant="Variant.Outlined">
+                <MudSelectItem T="TipoPeriodoFiltro" Value="TipoPeriodoFiltro.Mensal">Mês</MudSelectItem>
+                <MudSelectItem T="TipoPeriodoFiltro" Value="TipoPeriodoFiltro.Personalizado">Período personalizado</MudSelectItem>
+                <MudSelectItem T="TipoPeriodoFiltro" Value="TipoPeriodoFiltro.Ultimos12Meses">Últimos 12 meses</MudSelectItem>
+                <MudSelectItem T="TipoPeriodoFiltro" Value="TipoPeriodoFiltro.Anual">Ano</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+
+        @if (_tipo == TipoPeriodoFiltro.Mensal)
+        {
+            <MudItem xs="6" sm="3" md="2">
+                <MudSelect T="int?" Label="Mês" @bind-Value="_mes" Variant="Variant.Outlined">
+                    @for (var m = 1; m <= 12; m++)
+                    {
+                        var mes = m;
+                        <MudSelectItem T="int?" Value="@mes">@_nomesMeses[mes - 1]</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudNumericField T="int?" Culture="@CulturaBrasileira.PtBr" Label="Ano" @bind-Value="_ano"
+                                  Variant="Variant.Outlined" Min="2000" Max="2100" />
+            </MudItem>
+        }
+        else if (_tipo == TipoPeriodoFiltro.Personalizado)
+        {
+            <MudItem xs="6" sm="3" md="3">
+                <MudDatePicker Label="Data início" @bind-Date="_dataInicio" Variant="Variant.Outlined"
+                               Editable="true" DateFormat="dd/MM/yyyy" />
+            </MudItem>
+            <MudItem xs="6" sm="3" md="3">
+                <MudDatePicker Label="Data fim" @bind-Date="_dataFim" Variant="Variant.Outlined"
+                               Editable="true" DateFormat="dd/MM/yyyy" />
+            </MudItem>
+        }
+        else if (_tipo == TipoPeriodoFiltro.Anual)
+        {
+            <MudItem xs="6" sm="3" md="2">
+                <MudNumericField T="int?" Culture="@CulturaBrasileira.PtBr" Label="Ano" @bind-Value="_ano"
+                                  Variant="Variant.Outlined" Min="2000" Max="2100" />
+            </MudItem>
+        }
+
+        <MudItem xs="12" sm="3" md="2" Class="d-flex">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!PodeAplicar())"
+                       OnClick="AplicarFiltroAsync" Class="align-self-center">
+                Aplicar filtro
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    @if (_erro is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-3" Variant="Variant.Outlined" Dense="true">@_erro</MudAlert>
+    }
+    @if (_descricaoAplicada is not null)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-3">
+            Exibindo: @_descricaoAplicada
+        </MudText>
+    }
+</MudPaper>
+
+@code {
+    private static readonly string[] _nomesMeses = Enumerable.Range(1, 12)
+        .Select(m => CulturaBrasileira.PtBr.DateTimeFormat.GetMonthName(m))
+        .Select(nome => char.ToUpper(nome[0], CulturaBrasileira.PtBr) + nome[1..])
+        .ToArray();
+
+    /// <summary>Raised when the user applies a valid filter, with the resolved date range.</summary>
+    [Parameter]
+    public EventCallback<(DateOnly Inicio, DateOnly Fim)> OnFiltroAplicado { get; set; }
+
+    private TipoPeriodoFiltro _tipo = TipoPeriodoFiltro.Ultimos12Meses;
+    private int? _mes = DateTime.Now.Month;
+    private int? _ano = DateTime.Now.Year;
+    private DateTime? _dataInicio;
+    private DateTime? _dataFim;
+    private string? _erro;
+    private string? _descricaoAplicada;
+
+    private void AoMudarTipo()
+    {
+        _erro = null;
+    }
+
+    private bool PodeAplicar() => _tipo switch
+    {
+        TipoPeriodoFiltro.Mensal => _mes is >= 1 and <= 12 && _ano is not null,
+        TipoPeriodoFiltro.Personalizado => _dataInicio is not null && _dataFim is not null && _dataInicio <= _dataFim,
+        TipoPeriodoFiltro.Ultimos12Meses => true,
+        TipoPeriodoFiltro.Anual => _ano is not null,
+        _ => false,
+    };
+
+    private async Task AplicarFiltroAsync()
+    {
+        _erro = null;
+
+        try
+        {
+            DateOnly? dataInicio = _dataInicio is not null ? DateOnly.FromDateTime(_dataInicio.Value) : null;
+            DateOnly? dataFim = _dataFim is not null ? DateOnly.FromDateTime(_dataFim.Value) : null;
+
+            var (inicio, fim) = FiltroPeriodoHelper.CalcularIntervalo(_tipo, _mes, _ano, dataInicio, dataFim);
+
+            _descricaoAplicada = DescreverIntervalo(inicio, fim);
+
+            if (OnFiltroAplicado.HasDelegate)
+            {
+                await OnFiltroAplicado.InvokeAsync((inicio, fim));
+            }
+        }
+        catch (ArgumentException ex)
+        {
+            _erro = ex.Message;
+        }
+    }
+
+    private static string DescreverIntervalo(DateOnly inicio, DateOnly fim) =>
+        $"{inicio.ToString("dd/MM/yyyy", CulturaBrasileira.PtBr)} a {fim.ToString("dd/MM/yyyy", CulturaBrasileira.PtBr)}";
+}
