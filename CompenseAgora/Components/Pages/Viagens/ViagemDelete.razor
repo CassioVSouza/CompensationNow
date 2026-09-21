@@ -52,7 +52,7 @@ else
                 </tr>
                 <tr>
                     <td><MudText Typo="Typo.body2" Color="Color.Secondary">Veículo</MudText></td>
-                    <td><MudText Typo="Typo.body1">@_viagem.FrotaNome</MudText></td>
+                    <td><MudText Typo="Typo.body1">@(_viagem.FrotaNome ?? "-")</MudText></td>
                 </tr>
                 <tr>
                     <td><MudText Typo="Typo.body2" Color="Color.Secondary">Combustível</MudText></td>

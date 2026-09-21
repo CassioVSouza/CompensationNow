@@ -7,8 +7,8 @@ public class Viagem
     public int CodigoPessoa { get; set; }
     public Pessoa Pessoa { get; set; } = null!;
 
-    public int CodigoFrota { get; set; }
-    public Frota Frota { get; set; } = null!;
+    public int? CodigoFrota { get; set; }
+    public Frota? Frota { get; set; }
 
     public int? CodigoCombustivel { get; set; }
     public Combustivel? Combustivel { get; set; }

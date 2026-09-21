@@ -86,8 +86,8 @@ else
 
         var command = new CreateViagemCommand(
             codigoPessoa,
-            _input.CodigoFrota,
-            _input.TipoRegistro == TipoRegistroViagem.PorDistancia ? null : _input.CodigoCombustivel,
+            _input.TipoRegistro == TipoRegistroViagem.PorCombustivel ? null : _input.CodigoFrota,
+            _input.TipoRegistro == TipoRegistroViagem.PorCombustivel ? _input.CodigoCombustivel : null,
             _input.DataReferencia,
             _input.TipoRegistro == TipoRegistroViagem.PorDistancia ? 0 : _input.Consumo,
             _input.TipoRegistro == TipoRegistroViagem.PorCombustivel ? 0 : _input.AnoFrota,
@@ -116,19 +116,18 @@ else
 
     internal static string? ValidateForMode(ViagemInputModel input)
     {
-        if (input.CodigoFrota <= 0)
-        {
-            return "Selecione um veículo.";
-        }
-
         switch (input.TipoRegistro)
         {
+            case TipoRegistroViagem.PorDistancia when input.CodigoFrota is null or <= 0:
+                return "Selecione um veículo.";
             case TipoRegistroViagem.PorDistancia when input.DistanciaKM <= 0:
                 return "Informe a distância percorrida.";
             case TipoRegistroViagem.PorCombustivel when input.Consumo <= 0 || input.CodigoCombustivel <= 0:
                 return "Informe o consumo de combustível e selecione um combustível.";
-            case TipoRegistroViagem.PorTipoEAno when input.AnoFrota <= 0 || input.Consumo <= 0 || input.CodigoCombustivel <= 0:
-                return "Informe o ano da frota, o consumo de combustível e selecione um combustível.";
+            case TipoRegistroViagem.PorTipoEAno when input.CodigoFrota is null or <= 0:
+                return "Selecione um veículo.";
+            case TipoRegistroViagem.PorTipoEAno when input.AnoFrota <= 0 || input.Consumo <= 0:
+                return "Informe o ano do veículo e o consumo de combustível.";
             default:
                 return null;
         }

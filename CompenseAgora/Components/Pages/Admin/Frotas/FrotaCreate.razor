@@ -9,9 +9,9 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 
-<PageTitle>Nova frota</PageTitle>
+<PageTitle>Novo veículo</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Nova frota</MudText>
+<MudText Typo="Typo.h4" Class="mb-4">Novo veículo</MudText>
 
 @if (_combustiveis is null)
 {
@@ -41,7 +41,7 @@ else
 
         <MudSelect T="int?" Label="Combustível biogênico (opcional)" @bind-Value="_codigoCombustivelBiogenico"
                    Variant="Variant.Outlined" Clearable="true" Class="mb-3"
-                   HelperText="Ex.: etanol para frotas flex, biodiesel para frotas a diesel.">
+                   HelperText="Ex.: etanol para veículos flex, biodiesel para veículos a diesel.">
             @foreach (var combustivel in _combustiveis)
             {
                 <MudSelectItem T="int?" Value="@combustivel.Codigo">@combustivel.Nome</MudSelectItem>
@@ -90,7 +90,7 @@ else
         {
             await Mediator.Send(new CreateFrotaCommand(
                 _nome, _codigoCombustivelPrimario, _codigoCombustivelBiogenico, _codigoCombustivelFossil));
-            Snackbar.Add("Frota cadastrada com sucesso.", Severity.Success);
+            Snackbar.Add("Veículo cadastrado com sucesso.", Severity.Success);
             NavigationManager.NavigateTo("/admin/frotas");
         }
         catch (FluentValidation.ValidationException ex)
@@ -99,7 +99,7 @@ else
         }
         catch (Exception)
         {
-            _errorMessage = "Não foi possível salvar a frota agora. Tente novamente em instantes.";
+            _errorMessage = "Não foi possível salvar o veículo agora. Tente novamente em instantes.";
         }
         finally
         {

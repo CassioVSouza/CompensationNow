@@ -10,9 +10,9 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 
-<PageTitle>Excluir frota</PageTitle>
+<PageTitle>Excluir veículo</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Excluir frota</MudText>
+<MudText Typo="Typo.h4" Class="mb-4">Excluir veículo</MudText>
 
 @if (_frota is null)
 {
@@ -20,13 +20,13 @@
     {
         <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
             <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
-            <span>Carregando frota…</span>
+            <span>Carregando veículo…</span>
         </div>
     }
     else
     {
         <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
-            Esta frota não foi encontrada. Ela pode já ter sido excluída.
+            Este veículo não foi encontrado. Ele pode já ter sido excluído.
         </MudAlert>
         <MudButton Class="mt-3" Variant="Variant.Text" Href="/admin/frotas">Voltar para a lista</MudButton>
     }
@@ -40,8 +40,8 @@ else
         }
 
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
-            Tem certeza de que deseja excluir <strong>@_frota.Nome</strong>? Frotas usadas em viagens ou consumos
-            médios cadastrados não podem ser excluídas. Esta ação não pode ser desfeita.
+            Tem certeza de que deseja excluir <strong>@_frota.Nome</strong>? Veículos usados em viagens ou consumos
+            médios cadastrados não podem ser excluídos. Esta ação não pode ser desfeita.
         </MudAlert>
 
         <div class="d-flex gap-2 mt-4">
@@ -50,7 +50,7 @@ else
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
                 }
-                Excluir frota
+                Excluir veículo
             </MudButton>
             <MudButton Variant="Variant.Text" Href="/admin/frotas" Disabled="@_isDeleting">Cancelar</MudButton>
         </div>
@@ -81,7 +81,7 @@ else
         try
         {
             await Mediator.Send(new DeleteFrotaCommand(Codigo));
-            Snackbar.Add("Frota excluída com sucesso.", Severity.Success);
+            Snackbar.Add("Veículo excluído com sucesso.", Severity.Success);
             NavigationManager.NavigateTo("/admin/frotas");
         }
         catch (NotFoundException)
@@ -91,7 +91,7 @@ else
         }
         catch (Exception)
         {
-            _errorMessage = "Não foi possível excluir a frota agora. Ela pode estar em uso por outros registros.";
+            _errorMessage = "Não foi possível excluir o veículo agora. Ele pode estar em uso por outros registros.";
         }
         finally
         {

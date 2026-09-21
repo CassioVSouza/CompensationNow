@@ -3,8 +3,8 @@ namespace CompenseAgora.Features.Viagens;
 public record ViagemDto(
     int Codigo,
     int CodigoPessoa,
-    int CodigoFrota,
-    string FrotaNome,
+    int? CodigoFrota,
+    string? FrotaNome,
     int? CodigoCombustivel,
     string? CombustivelNome,
     DateOnly CriadoEm,

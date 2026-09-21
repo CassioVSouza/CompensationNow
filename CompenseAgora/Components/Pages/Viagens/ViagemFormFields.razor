@@ -2,16 +2,19 @@
 @using CompenseAgora.Features.Combustiveis
 
 <MudGrid>
-    <MudItem xs="12" sm="6">
-        <MudSelect T="int" Label="Veículo (frota)" @bind-Value="Model.CodigoFrota" @bind-Value:after="NotifyChangedAsync"
-                   Variant="Variant.Outlined" Placeholder="Selecione um veículo..."
-                   HelperText="O veículo cadastrado ao qual esta viagem pertence.">
-            @foreach (var frota in Frotas)
-            {
-                <MudSelectItem T="int" Value="@frota.Codigo">@frota.Nome</MudSelectItem>
-            }
-        </MudSelect>
-    </MudItem>
+    @if (Model.TipoRegistro != TipoRegistroViagem.PorCombustivel)
+    {
+        <MudItem xs="12" sm="6">
+            <MudSelect T="int?" Label="Veículo" @bind-Value="Model.CodigoFrota" @bind-Value:after="NotifyChangedAsync"
+                       Variant="Variant.Outlined" Placeholder="Selecione um veículo..."
+                       HelperText="O veículo cadastrado ao qual esta viagem pertence.">
+                @foreach (var frota in Frotas)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)frota.Codigo)">@frota.Nome</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    }
     <MudItem xs="12" sm="6">
         <MudDatePicker Label="Data de referência" @bind-Date="_dataReferencia" @bind-Date:after="NotifyChangedAsync"
                        Variant="Variant.Outlined" Editable="true" DateFormat="dd/MM/yyyy"
@@ -30,7 +33,7 @@
 {
     <MudGrid Class="mt-1">
         <MudItem xs="12" sm="6">
-            <MudNumericField T="int" Culture="@CulturaBrasileira.PtBr" Label="Ano da frota" @bind-Value="Model.AnoFrota" @bind-Value:after="NotifyChangedAsync"
+            <MudNumericField T="int" Culture="@CulturaBrasileira.PtBr" Label="Ano do veículo" @bind-Value="Model.AnoFrota" @bind-Value:after="NotifyChangedAsync"
                               Variant="Variant.Outlined" Min="0"
                               HelperText="Ano de fabricação do veículo (opcional)." />
         </MudItem>
@@ -51,7 +54,8 @@ else if (Model.TipoRegistro == TipoRegistroViagem.PorCombustivel)
         </MudItem>
         <MudItem xs="12" sm="6">
             <MudSelect T="int" Label="Combustível" @bind-Value="Model.CodigoCombustivel" @bind-Value:after="NotifyChangedAsync"
-                       Variant="Variant.Outlined" Placeholder="Selecione um combustível...">
+                       Variant="Variant.Outlined" Placeholder="Selecione um combustível..."
+                       HelperText="Não é necessário selecionar um veículo neste modo.">
                 @foreach (var combustivel in Combustiveis)
                 {
                     <MudSelectItem T="int" Value="@combustivel.Codigo">@combustivel.Nome</MudSelectItem>
@@ -63,22 +67,13 @@ else if (Model.TipoRegistro == TipoRegistroViagem.PorCombustivel)
 else
 {
     <MudGrid Class="mt-1">
-        <MudItem xs="12" sm="4">
-            <MudNumericField T="int" Culture="@CulturaBrasileira.PtBr" Label="Ano da frota" @bind-Value="Model.AnoFrota" @bind-Value:after="NotifyChangedAsync"
+        <MudItem xs="12" sm="6">
+            <MudNumericField T="int" Culture="@CulturaBrasileira.PtBr" Label="Ano do veículo" @bind-Value="Model.AnoFrota" @bind-Value:after="NotifyChangedAsync"
                               Variant="Variant.Outlined" Min="0" />
         </MudItem>
-        <MudItem xs="12" sm="4">
+        <MudItem xs="12" sm="6">
             <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="Consumo de combustível" @bind-Value="Model.Consumo" @bind-Value:after="NotifyChangedAsync"
                               Variant="Variant.Outlined" Min="0" HelperText="Em litros." />
-        </MudItem>
-        <MudItem xs="12" sm="4">
-            <MudSelect T="int" Label="Combustível" @bind-Value="Model.CodigoCombustivel" @bind-Value:after="NotifyChangedAsync"
-                       Variant="Variant.Outlined" Placeholder="Selecione um combustível...">
-                @foreach (var combustivel in Combustiveis)
-                {
-                    <MudSelectItem T="int" Value="@combustivel.Codigo">@combustivel.Nome</MudSelectItem>
-                }
-            </MudSelect>
         </MudItem>
     </MudGrid>
 }

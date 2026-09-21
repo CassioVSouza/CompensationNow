@@ -49,9 +49,9 @@ else
                   SortLabel="Ordenar por" @bind-SelectedItem="_selected">
             <HeaderContent>
                 <MudTh><MudTableSortLabel SortBy="new Func<Features.Viagens.ViagemDto, object>(x => x.DataReferencia)">Data de referência</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="new Func<Features.Viagens.ViagemDto, object>(x => x.FrotaNome)">Veículo</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<Features.Viagens.ViagemDto, object>(x => x.FrotaNome ?? string.Empty)">Veículo</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel SortBy="new Func<Features.Viagens.ViagemDto, object>(x => x.CombustivelNome ?? string.Empty)">Combustível</MudTableSortLabel></MudTh>
-                <MudTh>Ano da frota</MudTh>
+                <MudTh>Ano do veículo</MudTh>
                 <MudTh>Consumo</MudTh>
                 <MudTh>Distância (km)</MudTh>
                 <MudTh><MudTableSortLabel SortBy="new Func<Features.Viagens.ViagemDto, object>(x => x.EmissaoCO2)">Emissão de CO2</MudTableSortLabel></MudTh>
@@ -60,9 +60,9 @@ else
             <RowTemplate Context="row">
                 @{ var viagem = row!; }
                 <MudTd DataLabel="Data de referência">@viagem.DataReferencia.ToString("dd/MM/yyyy")</MudTd>
-                <MudTd DataLabel="Veículo">@viagem.FrotaNome</MudTd>
+                <MudTd DataLabel="Veículo">@(viagem.FrotaNome ?? "-")</MudTd>
                 <MudTd DataLabel="Combustível">@(viagem.CombustivelNome ?? "-")</MudTd>
-                <MudTd DataLabel="Ano da frota">@(viagem.AnoFrota == 0 ? "-" : viagem.AnoFrota.ToString())</MudTd>
+                <MudTd DataLabel="Ano do veículo">@(viagem.AnoFrota == 0 ? "-" : viagem.AnoFrota.ToString())</MudTd>
                 <MudTd DataLabel="Consumo">@(viagem.Consumo == 0 ? "-" : viagem.Consumo.ToString("N2"))</MudTd>
                 <MudTd DataLabel="Distância (km)">@(viagem.DistanciaKM == 0 ? "-" : viagem.DistanciaKM.ToString("N2"))</MudTd>
                 <MudTd DataLabel="Emissão de CO2">@FormatadorEmissao.ParaToneladas(viagem.EmissaoCO2).ToString("N3") t</MudTd>
@@ -108,7 +108,7 @@ else
             return true;
         }
 
-        return viagem.FrotaNome.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+        return (viagem.FrotaNome?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
             || (viagem.CombustivelNome?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false);
     }
 }

@@ -9,9 +9,9 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 
-<PageTitle>Novo consumo médio da frota</PageTitle>
+<PageTitle>Novo consumo médio do veículo</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Novo consumo médio da frota</MudText>
+<MudText Typo="Typo.h4" Class="mb-4">Novo consumo médio do veículo</MudText>
 
 @if (_frotas is null)
 {
@@ -28,8 +28,8 @@ else
             <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">@_errorMessage</MudAlert>
         }
 
-        <MudSelect T="int" Label="Frota" @bind-Value="_codigoFrota" Variant="Variant.Outlined"
-                   Placeholder="Selecione uma frota..." Class="mb-3">
+        <MudSelect T="int" Label="Veículo" @bind-Value="_codigoFrota" Variant="Variant.Outlined"
+                   Placeholder="Selecione um veículo..." Class="mb-3">
             @foreach (var frota in _frotas)
             {
                 <MudSelectItem T="int" Value="@frota.Codigo">@frota.Nome</MudSelectItem>

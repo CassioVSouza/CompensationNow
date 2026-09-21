@@ -18,7 +18,7 @@ public class GetViagemByIdQueryHandler(CompenseAgoraDbContext dbContext)
                 v.Codigo,
                 v.CodigoPessoa,
                 v.CodigoFrota,
-                v.Frota.Nome,
+                v.Frota != null ? v.Frota.Nome : null,
                 v.CodigoCombustivel,
                 v.Combustivel != null ? v.Combustivel.Nome : null,
                 v.CriadoEm,

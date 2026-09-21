@@ -7,7 +7,8 @@ namespace CompenseAgora.Features.Viagens.Calculo;
 public interface ICalculadoraEmissaoViagem
 {
     Task<decimal> CalcularEmissaoCO2Async(
-        int codigoFrota,
+        int? codigoFrota,
+        int? codigoCombustivel,
         DateOnly dataReferencia,
         decimal consumo,
         int anoFrota,
@@ -16,65 +17,171 @@ public interface ICalculadoraEmissaoViagem
 }
 
 /// <summary>
-/// Calcula a emissão de CO2e (CO2 + CH4 + N2O, convertidos por GWP) de uma viagem. Adaptado do serviço
-/// equivalente do projeto NeutralizaProjectMVC (ver Calculation.txt na raiz) para o esquema desta base:
-/// - As três formas de registro da tela de viagens (por distância, por combustível, por tipo e ano) convergem
-///   para a mesma fórmula aqui: a única diferença de fato entre elas era como o "consumo" era obtido
-///   (direto, ou derivado da distância via consumo médio da frota) — o restante do cálculo era idêntico.
-/// - O projeto original tinha uma tabela separada de fatores de CH4/N2O por frota/ano
-///   (FatorEmissaoFrotaEntity), que não existe no diagrama desta base; aqui CH4 e N2O também vêm de
-///   FATORES_DO_COMBUSTIVEL (mesma fonte do CO2), que já traz os três gases por combustível/ano.
-/// - O percentual de mistura biocombustível (etanol/gasolina ou biodiesel/diesel) é decidido pelo nome do
-///   combustível biogênico configurado na frota, em vez de um indicador numérico separado que não existe
-///   mais no modelo (Frota.CombustivelBiogenico/CombustivelFossil já expressam a mesma intenção).
-/// Qualquer referência ausente (frota, fatores, consumo médio, GWP) é tratada como zero/neutra em vez de
-/// lançar exceção, já que as tabelas de fatores ainda não têm uma tela de cadastro nesta base.
+/// Calcula a emissão de CO2e (CO2 + CH4 + N2O, convertidos por GWP) de uma viagem por transporte rodoviário.
+/// Fórmulas conferidas linha a linha contra a planilha oficial "Ferramenta de Cálculo GHG Protocol Brasil",
+/// aba "Transp.&amp; Distribuição (Upstream)", seção Transporte Rodoviário — que usa fórmulas diferentes
+/// para cada uma das três formas de registrar a viagem (Opção 1/2/3 na planilha):
+/// - "Por combustível" (Opção 2 — um <see cref="Entities.Combustivel"/> específico escolhido na viagem):
+///   não depende de nenhum veículo/frota. CO2, CH4 e N2O vêm todos do fator do PRÓPRIO combustível
+///   escolhido (tabela FATORES_DO_COMBUSTIVEL), cada gás dividido entre a parcela fóssil e biogênica
+///   conforme o par fóssil/biogênico configurado nesse combustível
+///   (<see cref="Combustivel.CombustivelFossil"/>/<see cref="Combustivel.CombustivelBiogenico"/>). Aqui,
+///   fora dos combustíveis com mistura rastreada (gasolina/diesel), a planilha NÃO zera a parcela — repassa
+///   o consumo integralmente como fóssil (e como biogênico também, se houver um biogênico configurado).
+/// - "Por tipo e ano" e "por distância" (Opções 1 e 3 — sem combustível específico escolhido; o consumo é
+///   informado direto ou derivado da distância via consumo médio do veículo): dependem de um veículo
+///   (<see cref="Frota"/>). O CO2 vem do fator do combustível fóssil configurado no veículo, mas o CH4 e o
+///   N2O vêm de uma tabela por veículo/ano (FATOR_EMISSAO_FROTA aqui) aplicada sobre o consumo total
+///   (fóssil + biogênico somados, sem dividir por fator de cada combustível). Aqui a divisão fóssil/biogênica
+///   é calculada de forma independente para cada lado, cada uma com sua própria árvore de três ramos (ver
+///   <see cref="CalcularParcelaFossilFrotaAsync"/>/<see cref="CalcularParcelaBiogenicaFrotaAsync"/>) — e,
+///   diferente do modo "por combustível", fora dos nomes reconhecidos a parcela é ZERADA, não repassada
+///   integralmente. Essa diferença de comportamento entre os dois modos é da própria planilha oficial, não
+///   uma simplificação: as fórmulas de cada opção usam ramos "senão" distintos (<c>IF(...,valor)</c> na
+///   Opção 2 contra <c>IF(...,0)</c> nas Opções 1/3).
+/// Qualquer referência ausente (veículo, combustível, fatores, consumo médio, GWP) é tratada como
+/// zero/neutra em vez de lançar exceção, já que as tabelas de fatores ainda não têm uma tela de cadastro
+/// nesta base.
 /// </summary>
 public class CalculadoraEmissaoViagem(CompenseAgoraDbContext dbContext) : ICalculadoraEmissaoViagem
 {
     private const string NomeGasCO2 = "Dióxido de carbono (CO2)";
     private const string NomeGasCH4 = "Metano (CH4)";
     private const string NomeGasN2O = "Óxido nitroso (N2O)";
+    private const string NomeFrotaGLP = "Gás Liquefeito de Petróleo (GLP)";
+    private const string NomeFrotaGasolinaPadrao = "Automóvel a gasolina";
+
+    private const string NomeGasolinaAutomotivaPura = "Gasolina Automotiva (pura)";
+    private const string NomeOleoDieselPuro = "Óleo Diesel (puro)";
+    private const string NomeGasNaturalVeicular = "Gás Natural Veicular (GNV)";
+    private const string NomeEtanolAnidro = "Etanol Anidro";
+    private const string NomeBiodiesel = "Biodiesel (B100)";
+    private const string NomeEtanolHidratado = "Etanol Hidratado";
+    private const string NomeBiometano = "Biometano";
+
+    private static readonly string[] NomesFosseisComMisturaRastreada =
+    [
+        NomeGasolinaAutomotivaPura,
+        NomeOleoDieselPuro,
+        "Óleo Diesel (comercial)",
+    ];
 
     public async Task<decimal> CalcularEmissaoCO2Async(
-        int codigoFrota,
+        int? codigoFrota,
+        int? codigoCombustivel,
         DateOnly dataReferencia,
         decimal consumo,
         int anoFrota,
         decimal distanciaKm,
         CancellationToken cancellationToken = default)
     {
-        var frota = await dbContext.Frotas
-            .AsNoTracking()
-            .Include(f => f.CombustivelBiogenico)
-            .FirstOrDefaultAsync(f => f.Codigo == codigoFrota, cancellationToken);
+        decimal co2, ch4, n2o;
 
-        if (frota is null)
+        if (codigoCombustivel is not null)
         {
-            return 0m;
-        }
+            if (consumo <= 0)
+            {
+                return 0m;
+            }
 
-        var consumoEfetivo = await DeterminarConsumoEfetivoAsync(frota, consumo, anoFrota, distanciaKm, cancellationToken);
-        if (consumoEfetivo <= 0)
+            (co2, ch4, n2o) = await CalcularPorCombustivelAsync(codigoCombustivel.Value, dataReferencia, consumo, cancellationToken);
+        }
+        else
         {
-            return 0m;
+            if (codigoFrota is null)
+            {
+                return 0m;
+            }
+
+            var frota = await dbContext.Frotas
+                .AsNoTracking()
+                .Include(f => f.CombustivelBiogenico)
+                .Include(f => f.CombustivelFossil)
+                .Include(f => f.CombustivelPrimario)
+                .FirstOrDefaultAsync(f => f.Codigo == codigoFrota.Value, cancellationToken);
+
+            if (frota is null)
+            {
+                return 0m;
+            }
+
+            var consumoEfetivo = await DeterminarConsumoEfetivoAsync(frota, consumo, anoFrota, distanciaKm, cancellationToken);
+            if (consumoEfetivo <= 0)
+            {
+                return 0m;
+            }
+
+            (co2, ch4, n2o) = await CalcularPorFrotaAsync(frota, dataReferencia, consumoEfetivo, anoFrota, cancellationToken);
         }
-
-        var (consumoFossil, consumoBiogenico) = await DividirConsumoAsync(frota, dataReferencia, consumoEfetivo, cancellationToken);
-
-        var codigoCombustivelFossil = frota.CodigoCombustivelFossil ?? frota.CodigoCombustivelPrimario;
-        var fatorFossil = await ObterFatorCombustivelAsync(codigoCombustivelFossil, dataReferencia, cancellationToken);
-        var fatorBiogenico = await ObterFatorCombustivelAsync(frota.CodigoCombustivelBiogenico, dataReferencia, cancellationToken);
 
         var gwp = await ObterGwpAsync(cancellationToken);
+        var totalCO2e = co2 * gwp[NomeGasCO2] + ch4 * gwp[NomeGasCH4] + n2o * gwp[NomeGasN2O];
+
+        return Math.Round(totalCO2e, 6, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
+    /// "Por combustível": não depende de veículo. CO2, CH4 e N2O vêm do fator do próprio combustível
+    /// escolhido na viagem (fóssil e biogênico configurados nele), cada um aplicado à sua fração do
+    /// consumo.
+    /// </summary>
+    private async Task<(decimal CO2, decimal CH4, decimal N2O)> CalcularPorCombustivelAsync(
+        int codigoCombustivel, DateOnly dataReferencia, decimal consumoEfetivo, CancellationToken cancellationToken)
+    {
+        var combustivel = await dbContext.Combustiveis
+            .AsNoTracking()
+            .Include(c => c.CombustivelFossil)
+            .Include(c => c.CombustivelBiogenico)
+            .FirstOrDefaultAsync(c => c.Codigo == codigoCombustivel, cancellationToken);
+
+        if (combustivel is null)
+        {
+            return (0m, 0m, 0m);
+        }
+
+        var (consumoFossil, consumoBiogenico) = await DividirConsumoPorCombustivelAsync(
+            combustivel.CodigoCombustivelFossil, combustivel.CombustivelFossil?.Nome,
+            combustivel.CodigoCombustivelBiogenico, combustivel.CombustivelBiogenico?.Nome,
+            dataReferencia, consumoEfetivo, cancellationToken);
+
+        var fatorFossil = await ObterFatorCombustivelAsync(combustivel.CodigoCombustivelFossil, dataReferencia, cancellationToken);
+        var fatorBiogenico = await ObterFatorCombustivelAsync(combustivel.CodigoCombustivelBiogenico, dataReferencia, cancellationToken);
 
         var co2 = fatorFossil.CO2 * consumoFossil / 1000m;
         var ch4 = (fatorFossil.CH4 * consumoFossil + fatorBiogenico.CH4 * consumoBiogenico) / 1000m;
         var n2o = (fatorFossil.N2O * consumoFossil + fatorBiogenico.N2O * consumoBiogenico) / 1000m;
 
-        var totalCO2e = co2 * gwp[NomeGasCO2] + ch4 * gwp[NomeGasCH4] + n2o * gwp[NomeGasN2O];
+        return (co2, ch4, n2o);
+    }
 
-        return Math.Round(totalCO2e, 6, MidpointRounding.AwayFromZero);
+    /// <summary>
+    /// "Por tipo e ano" / "por distância": CO2 continua vindo do fator do combustível fóssil do veículo,
+    /// mas CH4 e N2O vêm do fator de emissão do próprio veículo (por veículo/ano), aplicado ao consumo
+    /// total (fóssil + biogênico somados) em vez de dividido por combustível.
+    /// </summary>
+    private async Task<(decimal CO2, decimal CH4, decimal N2O)> CalcularPorFrotaAsync(
+        Frota frota, DateOnly dataReferencia, decimal consumoEfetivo, int anoFrota, CancellationToken cancellationToken)
+    {
+        // O fóssil "efetivo" da frota é o par explícito (CombustivelFossil), ou, quando não configurado,
+        // o próprio combustível primário — mesma regra usada abaixo para o fator de CO2.
+        var nomeCombustivelFossilEfetivo = frota.CombustivelFossil?.Nome ?? frota.CombustivelPrimario.Nome;
+
+        var (consumoFossil, consumoBiogenico) = await DividirConsumoPorFrotaAsync(
+            nomeCombustivelFossilEfetivo, frota.CombustivelBiogenico?.Nome,
+            dataReferencia, consumoEfetivo, cancellationToken);
+
+        var codigoCombustivelFossil = frota.CodigoCombustivelFossil ?? frota.CodigoCombustivelPrimario;
+        var fatorFossil = await ObterFatorCombustivelAsync(codigoCombustivelFossil, dataReferencia, cancellationToken);
+        var fatorFrota = await ObterFatorEmissaoFrotaAsync(frota, anoFrota, cancellationToken);
+
+        var co2 = fatorFossil.CO2 * consumoFossil / 1000m;
+        // CH4/N2O usam o consumo bruto (não a soma fóssil+biogênico) — a planilha oficial soma as colunas
+        // de consumo originais (SUM(V:AH)) aqui, não as parcelas já divididas, que agora podem somar menos
+        // que o consumo total quando o combustível não é reconhecido em nenhum dos dois ramos.
+        var ch4 = fatorFrota.CH4 * consumoEfetivo / 1000m;
+        var n2o = fatorFrota.N2O * consumoEfetivo / 1000m;
+
+        return (co2, ch4, n2o);
     }
 
     private async Task<decimal> DeterminarConsumoEfetivoAsync(
@@ -133,19 +240,28 @@ public class CalculadoraEmissaoViagem(CompenseAgoraDbContext dbContext) : ICalcu
     }
 
     /// <summary>
-    /// Divide o consumo efetivo entre a parcela fóssil e a parcela biogênica. Sem um par fóssil/biogênico
-    /// configurado na frota (ex.: GNV, GLP, diesel sem mistura obrigatória rastreada), todo o consumo é
-    /// tratado como fóssil.
+    /// "Por combustível" (planilha oficial, aba Transporte Rodoviário / opção 2): a divisão fóssil/biogênica
+    /// só se aplica (percentual de mistura) quando o combustível fóssil é gasolina pura ou diesel puro; para
+    /// qualquer outro fóssil (GNV, GLP, ...) TODO o consumo passa integralmente como fóssil, e — se houver um
+    /// biogênico configurado mesmo assim — o consumo passa integralmente como biogênico também (a planilha
+    /// não zera nenhum dos dois lados fora dos combustíveis com mistura rastreada).
     /// </summary>
-    private async Task<(decimal Fossil, decimal Biogenico)> DividirConsumoAsync(
-        Frota frota, DateOnly dataReferencia, decimal consumoEfetivo, CancellationToken cancellationToken)
+    private async Task<(decimal Fossil, decimal Biogenico)> DividirConsumoPorCombustivelAsync(
+        int? codigoCombustivelFossil, string? nomeCombustivelFossil,
+        int? codigoCombustivelBiogenico, string? nomeCombustivelBiogenico,
+        DateOnly dataReferencia, decimal consumoEfetivo, CancellationToken cancellationToken)
     {
-        if (frota.CodigoCombustivelBiogenico is null || frota.CodigoCombustivelFossil is null)
+        if (codigoCombustivelBiogenico is null || codigoCombustivelFossil is null)
         {
             return (consumoEfetivo, 0m);
         }
 
-        var percentual = await ObterPercentualMisturaAsync(frota.CombustivelBiogenico!.Nome, dataReferencia, cancellationToken);
+        if (nomeCombustivelFossil is null || !NomesFosseisComMisturaRastreada.Contains(nomeCombustivelFossil))
+        {
+            return (consumoEfetivo, 0m);
+        }
+
+        var percentual = await ObterPercentualMisturaAsync(nomeCombustivelBiogenico!, dataReferencia, cancellationToken);
         if (percentual <= 0)
         {
             return (consumoEfetivo, 0m);
@@ -154,6 +270,77 @@ public class CalculadoraEmissaoViagem(CompenseAgoraDbContext dbContext) : ICalcu
         var biogenico = consumoEfetivo * (percentual / 100m);
         var fossil = consumoEfetivo - biogenico;
         return (fossil, biogenico);
+    }
+
+    /// <summary>
+    /// "Por tipo e ano" / "por distância" (planilha oficial, aba Transporte Rodoviário / opções 1 e 3): a
+    /// parcela fóssil e a parcela biogênica são calculadas de forma INDEPENDENTE (não complementar), cada
+    /// uma com sua própria árvore de três ramos:
+    /// - Fóssil: gasolina pura ou diesel puro → consumo × (1 − % de mistura); GNV → consumo integral (sem
+    ///   redução); qualquer outro fóssil (GLP, elétrico, ...) → zero.
+    /// - Biogênico: etanol anidro ou biodiesel → consumo × (% de mistura); etanol hidratado ou biometano →
+    ///   consumo integral; qualquer outro biogênico → zero.
+    /// Ao contrário do modo "por combustível", aqui o "senão" zera a parcela em vez de repassá-la
+    /// integralmente — replicando exatamente as fórmulas da planilha oficial (colunas AL/AY e BA/BN das
+    /// opções 1 e 3), que usam <c>IF(...,0)</c> em vez de <c>IF(...,consumo)</c> no último ramo.
+    /// </summary>
+    private async Task<(decimal Fossil, decimal Biogenico)> DividirConsumoPorFrotaAsync(
+        string? nomeCombustivelFossil, string? nomeCombustivelBiogenico,
+        DateOnly dataReferencia, decimal consumoEfetivo, CancellationToken cancellationToken)
+    {
+        var fossil = await CalcularParcelaFossilFrotaAsync(nomeCombustivelFossil, dataReferencia, consumoEfetivo, cancellationToken);
+        var biogenico = await CalcularParcelaBiogenicaFrotaAsync(nomeCombustivelBiogenico, dataReferencia, consumoEfetivo, cancellationToken);
+        return (fossil, biogenico);
+    }
+
+    private async Task<decimal> CalcularParcelaFossilFrotaAsync(
+        string? nomeCombustivelFossil, DateOnly dataReferencia, decimal consumoEfetivo, CancellationToken cancellationToken)
+    {
+        if (nomeCombustivelFossil is null)
+        {
+            return 0m;
+        }
+
+        if (nomeCombustivelFossil is NomeGasolinaAutomotivaPura or NomeOleoDieselPuro)
+        {
+            // A % de mistura correspondente vem sempre do lado etanol/biodiesel — usa o nome "irmão"
+            // biogênico de cada fóssil só para escolher qual coluna de composição (etanol x biodiesel)
+            // consultar, não para determinar se há mistura ou não (isso já foi decidido acima).
+            var nomeParaEscolherComposicao = nomeCombustivelFossil == NomeGasolinaAutomotivaPura
+                ? NomeEtanolAnidro
+                : NomeBiodiesel;
+            var percentual = await ObterPercentualMisturaAsync(nomeParaEscolherComposicao, dataReferencia, cancellationToken);
+            return consumoEfetivo * (1 - percentual / 100m);
+        }
+
+        if (nomeCombustivelFossil == NomeGasNaturalVeicular)
+        {
+            return consumoEfetivo;
+        }
+
+        return 0m;
+    }
+
+    private async Task<decimal> CalcularParcelaBiogenicaFrotaAsync(
+        string? nomeCombustivelBiogenico, DateOnly dataReferencia, decimal consumoEfetivo, CancellationToken cancellationToken)
+    {
+        if (nomeCombustivelBiogenico is null)
+        {
+            return 0m;
+        }
+
+        if (nomeCombustivelBiogenico is NomeEtanolAnidro or NomeBiodiesel)
+        {
+            var percentual = await ObterPercentualMisturaAsync(nomeCombustivelBiogenico, dataReferencia, cancellationToken);
+            return consumoEfetivo * (percentual / 100m);
+        }
+
+        if (nomeCombustivelBiogenico is NomeEtanolHidratado or NomeBiometano)
+        {
+            return consumoEfetivo;
+        }
+
+        return 0m;
     }
 
     private async Task<decimal> ObterPercentualMisturaAsync(
@@ -234,6 +421,53 @@ public class CalculadoraEmissaoViagem(CompenseAgoraDbContext dbContext) : ICalcu
         return new FatorCombustivelValores(escolhido.CO2, escolhido.CH4, escolhido.N2O);
     }
 
+    /// <summary>
+    /// Fator de emissão de CH4/N2O do próprio veículo/ano (FATOR_EMISSAO_FROTA). Replica o fallback do
+    /// original: casamento exato por ano (ou uma linha "para todos os anos") primeiro; se não houver
+    /// fator com CH4 diferente de zero, cai para o fator mais recente disponível do mesmo veículo — com
+    /// uma exceção: veículos a GLP reaproveitam o fator do veículo "Automóvel a gasolina" nesse fallback,
+    /// como no projeto original. Sem nenhum fator disponível, CH4/N2O ficam zerados.
+    /// </summary>
+    private async Task<FatorEmissaoFrotaValores> ObterFatorEmissaoFrotaAsync(
+        Frota frota, int anoFrota, CancellationToken cancellationToken)
+    {
+        var exato = await dbContext.FatoresEmissaoFrota
+            .AsNoTracking()
+            .FirstOrDefaultAsync(f => f.CodigoFrota == frota.Codigo && (f.Ano == anoFrota || f.ParaTodos), cancellationToken);
+
+        if (exato is not null && exato.CH4 != 0)
+        {
+            return new FatorEmissaoFrotaValores(exato.CH4, exato.N2O);
+        }
+
+        var codigoFrotaParaFallback = frota.Codigo;
+
+        if (frota.Nome == NomeFrotaGLP)
+        {
+            var frotaPadrao = await dbContext.Frotas
+                .AsNoTracking()
+                .FirstOrDefaultAsync(f => f.Nome == NomeFrotaGasolinaPadrao, cancellationToken);
+            if (frotaPadrao is not null)
+            {
+                codigoFrotaParaFallback = frotaPadrao.Codigo;
+            }
+        }
+
+        var disponiveis = await dbContext.FatoresEmissaoFrota
+            .AsNoTracking()
+            .Where(f => f.CodigoFrota == codigoFrotaParaFallback && f.CH4 != 0)
+            .OrderBy(f => f.Ano)
+            .ToListAsync(cancellationToken);
+
+        if (disponiveis.Count == 0)
+        {
+            return FatorEmissaoFrotaValores.Zero;
+        }
+
+        var ultimo = disponiveis.Last();
+        return new FatorEmissaoFrotaValores(ultimo.CH4, ultimo.N2O);
+    }
+
     private async Task<Dictionary<string, decimal>> ObterGwpAsync(CancellationToken cancellationToken)
     {
         var gases = await dbContext.GasesEfeitoEstufa.AsNoTracking().ToListAsync(cancellationToken);
@@ -249,5 +483,10 @@ public class CalculadoraEmissaoViagem(CompenseAgoraDbContext dbContext) : ICalcu
     private readonly record struct FatorCombustivelValores(decimal CO2, decimal CH4, decimal N2O)
     {
         public static readonly FatorCombustivelValores Zero = new(0m, 0m, 0m);
+    }
+
+    private readonly record struct FatorEmissaoFrotaValores(decimal CH4, decimal N2O)
+    {
+        public static readonly FatorEmissaoFrotaValores Zero = new(0m, 0m);
     }
 }

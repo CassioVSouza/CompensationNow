@@ -149,7 +149,7 @@ else
                 <MudTable Items="@_viagens" Dense="true" Hover="true" Class="mb-4" Elevation="1">
                     <HeaderContent>
                         <MudTh>Data</MudTh>
-                        <MudTh>Frota</MudTh>
+                        <MudTh>Veículo</MudTh>
                         <MudTh>Combustível</MudTh>
                         <MudTh>Distância (km)</MudTh>
                         <MudTh>Consumo</MudTh>
@@ -157,7 +157,7 @@ else
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Data">@context.DataReferencia.ToString("dd/MM/yyyy")</MudTd>
-                        <MudTd DataLabel="Frota">@context.FrotaNome</MudTd>
+                        <MudTd DataLabel="Veículo">@context.FrotaNome</MudTd>
                         <MudTd DataLabel="Combustível">@(context.CombustivelNome ?? "—")</MudTd>
                         <MudTd DataLabel="Distância (km)">@context.DistanciaKM.ToString("N2")</MudTd>
                         <MudTd DataLabel="Consumo">@context.Consumo.ToString("N2")</MudTd>

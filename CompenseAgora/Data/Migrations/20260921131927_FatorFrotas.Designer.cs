@@ -4,6 +4,7 @@ using CompenseAgora.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CompenseAgora.Data.Migrations
 {
     [DbContext(typeof(CompenseAgoraDbContext))]
-    partial class CompenseAgoraDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260921131927_FatorFrotas")]
+    partial class FatorFrotas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -423,7 +426,7 @@ namespace CompenseAgora.Data.Migrations
                     b.Property<int?>("CodigoCombustivel")
                         .HasColumnType("int");
 
-                    b.Property<int?>("CodigoFrota")
+                    b.Property<int>("CodigoFrota")
                         .HasColumnType("int");
 
                     b.Property<int>("CodigoPessoa")
@@ -565,7 +568,8 @@ namespace CompenseAgora.Data.Migrations
                     b.HasOne("CompenseAgora.Entities.Frota", "Frota")
                         .WithMany("Viagens")
                         .HasForeignKey("CodigoFrota")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("CompenseAgora.Entities.Pessoa", "Pessoa")
                         .WithMany("Viagens")

@@ -116,8 +116,8 @@ else
 
         var command = new UpdateViagemCommand(
             Codigo,
-            _input.CodigoFrota,
-            _input.TipoRegistro == TipoRegistroViagem.PorDistancia ? null : _input.CodigoCombustivel,
+            _input.TipoRegistro == TipoRegistroViagem.PorCombustivel ? null : _input.CodigoFrota,
+            _input.TipoRegistro == TipoRegistroViagem.PorCombustivel ? _input.CodigoCombustivel : null,
             _input.DataReferencia,
             _input.TipoRegistro == TipoRegistroViagem.PorDistancia ? 0 : _input.Consumo,
             _input.TipoRegistro == TipoRegistroViagem.PorCombustivel ? 0 : _input.AnoFrota,
@@ -150,11 +150,11 @@ else
 
     private static TipoRegistroViagem InferTipoRegistro(Features.Viagens.ViagemDto viagem)
     {
-        if (viagem.CodigoCombustivel is null)
+        if (viagem.CodigoCombustivel is not null)
         {
-            return TipoRegistroViagem.PorDistancia;
+            return TipoRegistroViagem.PorCombustivel;
         }
 
-        return viagem.AnoFrota > 0 ? TipoRegistroViagem.PorTipoEAno : TipoRegistroViagem.PorCombustivel;
+        return viagem.DistanciaKM > 0 ? TipoRegistroViagem.PorDistancia : TipoRegistroViagem.PorTipoEAno;
     }
 }

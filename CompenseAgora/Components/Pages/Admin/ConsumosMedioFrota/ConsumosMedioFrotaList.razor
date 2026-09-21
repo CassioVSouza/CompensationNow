@@ -6,10 +6,10 @@
 @using MediatR
 @inject IMediator Mediator
 
-<PageTitle>Consumo médio da frota</PageTitle>
+<PageTitle>Consumo médio do veículo</PageTitle>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <MudText Typo="Typo.h4">Consumo médio da frota</MudText>
+    <MudText Typo="Typo.h4">Consumo médio do veículo</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/admin/consumos-medio-frota/novo">
         Novo consumo médio
     </MudButton>
@@ -36,7 +36,7 @@ else
     <MudPaper Class="pa-2" Elevation="1">
         <MudTable Items="_consumos" Hover="true" Striped="true" Dense="false">
             <HeaderContent>
-                <MudTh>Frota</MudTh>
+                <MudTh>Veículo</MudTh>
                 <MudTh>Ano</MudTh>
                 <MudTh>Vale para todos os anos</MudTh>
                 <MudTh>Consumo</MudTh>
@@ -44,7 +44,7 @@ else
                 <MudTh Style="width: 1%;"></MudTh>
             </HeaderContent>
             <RowTemplate Context="consumo">
-                <MudTd DataLabel="Frota">@consumo.NomeFrota</MudTd>
+                <MudTd DataLabel="Veículo">@consumo.NomeFrota</MudTd>
                 <MudTd DataLabel="Ano">@consumo.Ano</MudTd>
                 <MudTd DataLabel="Vale para todos os anos">@(consumo.ParaTodos ? "Sim" : "Não")</MudTd>
                 <MudTd DataLabel="Consumo">@consumo.Consumo.ToString("N2")</MudTd>

@@ -12,9 +12,9 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 
-<PageTitle>Editar frota</PageTitle>
+<PageTitle>Editar veículo</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Editar frota</MudText>
+<MudText Typo="Typo.h4" Class="mb-4">Editar veículo</MudText>
 
 @if (!_loaded)
 {
@@ -22,13 +22,13 @@
     {
         <div class="d-flex align-items-center gap-3 py-5" role="status" aria-live="polite">
             <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
-            <span>Carregando frota…</span>
+            <span>Carregando veículo…</span>
         </div>
     }
     else
     {
         <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
-            Esta frota não foi encontrada. Ela pode já ter sido excluída.
+            Este veículo não foi encontrado. Ele pode já ter sido excluído.
         </MudAlert>
         <MudButton Class="mt-3" Variant="Variant.Text" Href="/admin/frotas">Voltar para a lista</MudButton>
     }
@@ -118,7 +118,7 @@ else
         {
             await Mediator.Send(new UpdateFrotaCommand(
                 Codigo, _nome, _codigoCombustivelPrimario, _codigoCombustivelBiogenico, _codigoCombustivelFossil));
-            Snackbar.Add("Frota atualizada com sucesso.", Severity.Success);
+            Snackbar.Add("Veículo atualizado com sucesso.", Severity.Success);
             NavigationManager.NavigateTo("/admin/frotas");
         }
         catch (NotFoundException)
@@ -132,7 +132,7 @@ else
         }
         catch (Exception)
         {
-            _errorMessage = "Não foi possível salvar a frota agora. Tente novamente em instantes.";
+            _errorMessage = "Não foi possível salvar o veículo agora. Tente novamente em instantes.";
         }
         finally
         {
