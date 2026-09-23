@@ -14,59 +14,86 @@
     <div class="alert alert-danger" role="alert">@_errorMessage</div>
 }
 
-<EditForm Model="Input" FormName="register" OnSubmit="HandleRegisterAsync" method="post">
-    <div class="row g-3">
-        <div class="col-md-6">
-            <label class="form-label">Nome</label>
-            <InputText class="form-control" @bind-Value="Input.Nome" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Sobrenome</label>
-            <InputText class="form-control" @bind-Value="Input.Sobrenome" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">E-mail</label>
-            <InputText class="form-control" type="email" @bind-Value="Input.Email" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Celular</label>
-            <InputText class="form-control" @bind-Value="Input.Celular" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Senha</label>
-            <InputText class="form-control" type="password" @bind-Value="Input.Password" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Confirmar senha</label>
-            <InputText class="form-control" type="password" @bind-Value="Input.ConfirmPassword" />
-        </div>
-        <div class="col-md-8">
-            <label class="form-label">Endereço</label>
-            <InputText class="form-control" @bind-Value="Input.Endereco" />
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Número</label>
-            <InputText class="form-control" @bind-Value="Input.Numero" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Bairro</label>
-            <InputText class="form-control" @bind-Value="Input.Bairro" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Cidade</label>
-            <InputText class="form-control" @bind-Value="Input.Cidade" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Estado</label>
-            <InputText class="form-control" @bind-Value="Input.Estado" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">País</label>
-            <InputText class="form-control" @bind-Value="Input.Pais" />
-        </div>
-    </div>
+<p class="text-muted">
+    Campos marcados com <span class="text-danger" aria-hidden="true">*</span> são obrigatórios.
+    Todo o resto é opcional e pode ser deixado em branco.
+</p>
 
-    <button type="submit" class="btn btn-primary mt-3">Criar conta</button>
+<EditForm Model="Input" FormName="register" OnSubmit="HandleRegisterAsync" method="post">
+    <fieldset class="mb-4">
+        <legend class="h5">Dados de acesso</legend>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label" for="nome">Nome <span class="text-danger" aria-hidden="true">*</span></label>
+                <InputText id="nome" class="form-control" @bind-Value="Input.Nome" required autocomplete="given-name" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="sobrenome">Sobrenome <span class="text-danger" aria-hidden="true">*</span></label>
+                <InputText id="sobrenome" class="form-control" @bind-Value="Input.Sobrenome" required autocomplete="family-name" />
+            </div>
+            <div class="col-md-12">
+                <label class="form-label" for="email">E-mail <span class="text-danger" aria-hidden="true">*</span></label>
+                <InputText id="email" class="form-control" type="email" @bind-Value="Input.Email" required autocomplete="email"
+                           aria-describedby="email-ajuda" />
+                <div id="email-ajuda" class="form-text">Enviaremos um código para este e-mail para confirmar sua conta.</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="senha">Senha <span class="text-danger" aria-hidden="true">*</span></label>
+                <InputText id="senha" class="form-control" type="password" @bind-Value="Input.Password" required
+                           minlength="8" autocomplete="new-password" aria-describedby="senha-ajuda" />
+                <div id="senha-ajuda" class="form-text">
+                    Mínimo de 8 caracteres, com letra maiúscula, letra minúscula, número e caractere especial.
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="confirmar-senha">Confirmar senha <span class="text-danger" aria-hidden="true">*</span></label>
+                <InputText id="confirmar-senha" class="form-control" type="password" @bind-Value="Input.ConfirmPassword" required
+                           autocomplete="new-password" />
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset class="mb-3">
+        <legend class="h5">
+            Informações adicionais <span class="badge text-bg-secondary align-middle fw-normal">Opcional</span>
+        </legend>
+        <p class="form-text mt-0 mb-3">
+            Não são necessárias para usar a plataforma. Preencha só se quiser completar seu perfil.
+        </p>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label" for="celular">Celular <span class="text-muted">(opcional)</span></label>
+                <InputText id="celular" class="form-control" type="tel" @bind-Value="Input.Celular" autocomplete="tel" />
+            </div>
+            <div class="col-md-6"></div>
+            <div class="col-md-8">
+                <label class="form-label" for="endereco">Endereço <span class="text-muted">(opcional)</span></label>
+                <InputText id="endereco" class="form-control" @bind-Value="Input.Endereco" autocomplete="address-line1" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="numero">Número <span class="text-muted">(opcional)</span></label>
+                <InputText id="numero" class="form-control" @bind-Value="Input.Numero" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="bairro">Bairro <span class="text-muted">(opcional)</span></label>
+                <InputText id="bairro" class="form-control" @bind-Value="Input.Bairro" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="cidade">Cidade <span class="text-muted">(opcional)</span></label>
+                <InputText id="cidade" class="form-control" @bind-Value="Input.Cidade" autocomplete="address-level2" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="estado">Estado <span class="text-muted">(opcional)</span></label>
+                <InputText id="estado" class="form-control" @bind-Value="Input.Estado" autocomplete="address-level1" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="pais">País <span class="text-muted">(opcional)</span></label>
+                <InputText id="pais" class="form-control" @bind-Value="Input.Pais" autocomplete="country-name" />
+            </div>
+        </div>
+    </fieldset>
+
+    <button type="submit" class="btn btn-primary">Criar conta</button>
 </EditForm>
 
 <p class="mt-3">
