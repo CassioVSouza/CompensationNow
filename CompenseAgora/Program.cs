@@ -2,9 +2,11 @@ using System.Globalization;
 using System.Reflection;
 using Amazon.CognitoIdentityProvider;
 using CompenseAgora.Auth;
+using CompenseAgora.Common;
 using CompenseAgora.Common.Behaviors;
 using CompenseAgora.Components;
 using CompenseAgora.Data;
+using CompenseAgora.Data.Interceptors;
 using CompenseAgora.Features.Energias.Calculo;
 using CompenseAgora.Features.Viagens.Calculo;
 using FluentValidation;
@@ -29,8 +31,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddDbContext<CompenseAgoraDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("CompenseAgoraDb")));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IUsuarioAtual, UsuarioAtual>();
+builder.Services.AddScoped<AuditoriaInterceptor>();
+
+builder.Services.AddDbContext<CompenseAgoraDbContext>((serviceProvider, options) =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("CompenseAgoraDb"))
+        .AddInterceptors(serviceProvider.GetRequiredService<AuditoriaInterceptor>()));
 
 builder.Services.AddMudServices();
 

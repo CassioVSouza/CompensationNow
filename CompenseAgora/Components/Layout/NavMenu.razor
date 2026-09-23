@@ -23,6 +23,8 @@
                 <MudNavLink Href="energias" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Bolt">Energia</MudNavLink>
                 <MudNavLink Href="compensacoes" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Park">Compensação</MudNavLink>
                 <MudNavLink Href="relatorio" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Description">Relatório</MudNavLink>
+                <MudNavLink Href="historico" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.History">Histórico</MudNavLink>
+                <MudNavLink Href="faq" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.HelpOutline">Perguntas frequentes</MudNavLink>
 
                 <AuthorizeView Roles="Admin" Context="adminState">
                     <Authorized>
@@ -59,6 +61,7 @@
             <NotAuthorized>
                 <MudNavLink Href="login" Icon="@Icons.Material.Filled.Login">Entrar</MudNavLink>
                 <MudNavLink Href="register" Icon="@Icons.Material.Filled.PersonAdd">Cadastrar</MudNavLink>
+                <MudNavLink Href="faq" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.HelpOutline">Perguntas frequentes</MudNavLink>
             </NotAuthorized>
         </AuthorizeView>
     </MudNavMenu>

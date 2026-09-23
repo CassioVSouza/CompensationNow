@@ -1,0 +1,249 @@
+@page "/historico"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using CompenseAgora.Entities
+@using CompenseAgora.Features.Auditorias
+@using CompenseAgora.Features.Auditorias.Queries.GetAuditorias
+@using MediatR
+@inject IMediator Mediator
+
+<PageTitle>Histórico</PageTitle>
+
+<div class="mb-4">
+    <MudText Typo="Typo.h4">Histórico</MudText>
+    <MudText Typo="Typo.body1" Color="Color.Secondary">
+        Tudo o que você criou, alterou ou excluiu na plataforma, e os filtros aplicados no painel e no relatório.
+    </MudText>
+</div>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="TipoAcaoAuditoria?" Label="Ação" @bind-Value="_acao" Variant="Variant.Outlined">
+                <MudSelectItem T="TipoAcaoAuditoria?" Value="null">Todas</MudSelectItem>
+                @foreach (var acao in Enum.GetValues<TipoAcaoAuditoria>())
+                {
+                    <MudSelectItem T="TipoAcaoAuditoria?" Value="@acao">@RotulosAuditoria.Acao(acao)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6" sm="3" md="3">
+            <MudDatePicker Label="De" @bind-Date="_dataInicio" Variant="Variant.Outlined"
+                           Editable="true" DateFormat="dd/MM/yyyy" Clearable="true" />
+        </MudItem>
+        <MudItem xs="6" sm="3" md="3">
+            <MudDatePicker Label="Até" @bind-Date="_dataFim" Variant="Variant.Outlined"
+                           Editable="true" DateFormat="dd/MM/yyyy" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" md="3" Class="d-flex gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!IntervaloValido)"
+                       OnClick="AplicarFiltroAsync" Class="align-self-center">
+                Filtrar
+            </MudButton>
+            <MudButton Variant="Variant.Text" OnClick="LimparFiltroAsync" Class="align-self-center">
+                Limpar
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    @if (!IntervaloValido)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-3" Variant="Variant.Outlined" Dense="true">
+            A data "De" não pode ser posterior à data "Até".
+        </MudAlert>
+    }
+</MudPaper>
+
+@if (_erro is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_erro</MudAlert>
+}
+
+<MudPaper Class="pa-2" Elevation="1">
+    <MudTable @ref="_tabela" T="AuditoriaDto" ServerData="CarregarAsync" Hover="true" Dense="false"
+              LoadingProgressColor="Color.Primary" RowsPerPage="20">
+        <HeaderContent>
+            <MudTh Style="width: 1%;"></MudTh>
+            <MudTh>Data e hora</MudTh>
+            <MudTh>Ação</MudTh>
+            <MudTh>Descrição</MudTh>
+        </HeaderContent>
+        <RowTemplate Context="item">
+            <MudTd>
+                @if (item.Alteracoes.Count > 0)
+                {
+                    var expandido = _expandidos.Contains(item.Codigo);
+                    <MudIconButton Icon="@(expandido ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                   Size="Size.Small" OnClick="@(() => AlternarDetalhes(item.Codigo))"
+                                   aria-expanded="@expandido.ToString().ToLowerInvariant()"
+                                   title="@(expandido ? "Ocultar detalhes" : "Ver detalhes")" />
+                }
+            </MudTd>
+            <MudTd DataLabel="Data e hora" Class="text-nowrap">
+                @FusoHorarioBrasil.ParaHorarioLocal(item.DataHora).ToString("dd/MM/yyyy HH:mm:ss", CulturaBrasileira.PtBr)
+            </MudTd>
+            <MudTd DataLabel="Ação">
+                <MudChip T="string" Size="Size.Small" Color="@CorDaAcao(item.Acao)" Variant="Variant.Outlined">
+                    @RotulosAuditoria.Acao(item.Acao)
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Descrição">@item.Descricao</MudTd>
+        </RowTemplate>
+        <ChildRowContent Context="item">
+            @if (_expandidos.Contains(item.Codigo))
+            {
+                <MudTr>
+                    <td colspan="4" class="px-6 pb-4">
+                        <MudSimpleTable Dense="true" Elevation="0" Bordered="true">
+                            <thead>
+                                <tr>
+                                    <th>Campo</th>
+                                    @if (item.Acao != TipoAcaoAuditoria.Criacao)
+                                    {
+                                        <th>Valor anterior</th>
+                                    }
+                                    @if (item.Acao != TipoAcaoAuditoria.Exclusao)
+                                    {
+                                        <th>@(item.Acao == TipoAcaoAuditoria.Criacao ? "Valor" : "Novo valor")</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var alteracao in item.Alteracoes)
+                                {
+                                    <tr>
+                                        <td>@alteracao.Campo</td>
+                                        @if (item.Acao != TipoAcaoAuditoria.Criacao)
+                                        {
+                                            <td>@(alteracao.Anterior ?? "—")</td>
+                                        }
+                                        @if (item.Acao != TipoAcaoAuditoria.Exclusao)
+                                        {
+                                            <td>@(alteracao.Novo ?? "—")</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    </td>
+                </MudTr>
+            }
+        </ChildRowContent>
+        <NoRecordsContent>
+            <div class="d-flex flex-column align-items-center text-center py-6">
+                <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
+                <MudText Typo="Typo.h6" Class="mb-1">Nenhuma atividade encontrada</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Secondary">
+                    @(FiltroAtivo
+                        ? "Nenhuma atividade corresponde aos filtros selecionados. Tente ampliar o período ou escolher outra ação."
+                        : "Suas ações na plataforma aparecerão aqui assim que você criar, alterar ou excluir um registro.")
+                </MudText>
+            </div>
+        </NoRecordsContent>
+        <LoadingContent>
+            <span role="status" aria-live="polite">Carregando histórico…</span>
+        </LoadingContent>
+        <PagerContent>
+            <MudTablePager RowsPerPageString="Linhas por página" InfoFormat="{first_item}-{last_item} de {all_items}"
+                           PageSizeOptions="@(new[] { 10, 20, 50, 100 })" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<AuditoriaDto>? _tabela;
+    private int _codigoPessoa;
+    private TipoAcaoAuditoria? _acao;
+    private DateTime? _dataInicio;
+    private DateTime? _dataFim;
+    private string? _erro;
+    private readonly HashSet<int> _expandidos = [];
+
+    // Filters only take effect when "Filtrar" is pressed, so paging keeps using the last applied values.
+    private TipoAcaoAuditoria? _acaoAplicada;
+    private DateOnly? _inicioAplicado;
+    private DateOnly? _fimAplicado;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private bool IntervaloValido => _dataInicio is null || _dataFim is null || _dataInicio <= _dataFim;
+
+    private bool FiltroAtivo => _acaoAplicada is not null || _inicioAplicado is not null || _fimAplicado is not null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateTask!;
+        _codigoPessoa = int.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    }
+
+    private async Task<TableData<AuditoriaDto>> CarregarAsync(TableState estado, CancellationToken cancellationToken)
+    {
+        _erro = null;
+        try
+        {
+            var resultado = await Mediator.Send(
+                new GetAuditoriasQuery(_codigoPessoa, _acaoAplicada, _inicioAplicado, _fimAplicado, estado.Page, estado.PageSize),
+                cancellationToken);
+
+            return new TableData<AuditoriaDto> { Items = resultado.Itens, TotalItems = resultado.Total };
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _erro = "Não foi possível carregar o histórico. Tente novamente em instantes.";
+            return new TableData<AuditoriaDto> { Items = [], TotalItems = 0 };
+        }
+    }
+
+    private async Task AplicarFiltroAsync()
+    {
+        _acaoAplicada = _acao;
+        _inicioAplicado = _dataInicio is not null ? DateOnly.FromDateTime(_dataInicio.Value) : null;
+        _fimAplicado = _dataFim is not null ? DateOnly.FromDateTime(_dataFim.Value) : null;
+        _expandidos.Clear();
+        await RecarregarAsync();
+    }
+
+    private async Task LimparFiltroAsync()
+    {
+        _acao = null;
+        _dataInicio = null;
+        _dataFim = null;
+        await AplicarFiltroAsync();
+    }
+
+    private async Task RecarregarAsync()
+    {
+        if (_tabela is null)
+        {
+            return;
+        }
+
+        // Filtering restarts from the first page; NavigateTo already reloads server data when the page changes.
+        if (_tabela.CurrentPage != 0)
+        {
+            _tabela.NavigateTo(0);
+        }
+        else
+        {
+            await _tabela.ReloadServerData();
+        }
+    }
+
+    private void AlternarDetalhes(int codigo)
+    {
+        if (!_expandidos.Remove(codigo))
+        {
+            _expandidos.Add(codigo);
+        }
+    }
+
+    private static Color CorDaAcao(TipoAcaoAuditoria acao) => acao switch
+    {
+        TipoAcaoAuditoria.Criacao => Color.Success,
+        TipoAcaoAuditoria.Alteracao => Color.Info,
+        TipoAcaoAuditoria.Exclusao => Color.Error,
+        _ => Color.Default,
+    };
+}

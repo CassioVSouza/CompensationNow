@@ -1,0 +1,111 @@
+@page "/faq"
+@rendermode InteractiveServer
+@using System.Globalization
+@using System.Text
+
+@* Deliberately public (no [Authorize]): help must be reachable before signing up or logging in. *@
+
+<PageTitle>Perguntas frequentes</PageTitle>
+
+<div class="mb-4">
+    <MudText Typo="Typo.h4">Perguntas frequentes</MudText>
+    <MudText Typo="Typo.body1" Color="Color.Secondary">
+        Tire suas dúvidas sobre como usar a plataforma, como suas emissões são calculadas e como funciona a compensação.
+    </MudText>
+</div>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudTextField T="string" @bind-Value="_busca" Immediate="true" DebounceInterval="200"
+                  Placeholder="Buscar uma pergunta (ex.: etanol, relatório, senha)..."
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                  Clearable="true" Variant="Variant.Outlined" aria-label="Buscar nas perguntas frequentes" />
+
+    @if (BuscaAtiva)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-3" role="status" aria-live="polite">
+            @(TotalEncontrado == 1 ? "1 pergunta encontrada" : $"{TotalEncontrado} perguntas encontradas")
+        </MudText>
+    }
+    else
+    {
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            @foreach (var secao in ConteudoFaq.Secoes)
+            {
+                <MudButton Href="@($"faq#{secao.Id}")" Variant="Variant.Outlined" Size="Size.Small"
+                           StartIcon="@secao.Icone">
+                    @secao.Titulo
+                </MudButton>
+            }
+        </div>
+    }
+</MudPaper>
+
+@if (BuscaAtiva && TotalEncontrado == 0)
+{
+    <MudPaper Class="pa-6 d-flex flex-column align-items-center text-center mb-4" Elevation="0" Outlined="true">
+        <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
+        <MudText Typo="Typo.h6" Class="mb-1">Nenhuma pergunta encontrada</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
+            Tente outras palavras, como “viagem”, “energia” ou “compensação”.
+        </MudText>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LimparBusca">Limpar busca</MudButton>
+    </MudPaper>
+}
+
+@foreach (var (secao, perguntas) in SecoesVisiveis)
+{
+    <section id="@secao.Id" class="faq-secao mb-5">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <MudIcon Icon="@secao.Icone" Color="Color.Primary" />
+            <MudText Typo="Typo.h6" Class="mb-0">@secao.Titulo</MudText>
+        </div>
+        <MudExpansionPanels MultiExpansion="true" Elevation="1" @key="@($"{secao.Id}|{BuscaAtiva}")">
+            @foreach (var pergunta in perguntas)
+            {
+                <MudExpansionPanel Text="@pergunta.Pergunta" Expanded="@BuscaAtiva">
+                    <div class="faq-resposta">@((MarkupString)pergunta.RespostaHtml)</div>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+    </section>
+}
+
+
+@code {
+    private string? _busca;
+
+    private bool BuscaAtiva => !string.IsNullOrWhiteSpace(_busca);
+
+    private IEnumerable<(SecaoFaq Secao, List<PerguntaFaq> Perguntas)> SecoesVisiveis =>
+        ConteudoFaq.Secoes
+            .Select(s => (s, s.Perguntas.Where(Corresponde).ToList()))
+            .Where(s => s.Item2.Count > 0);
+
+    private int TotalEncontrado => SecoesVisiveis.Sum(s => s.Perguntas.Count);
+
+    private void LimparBusca() => _busca = null;
+
+    // Every search term must appear in the question or answer; accents and case are ignored.
+    private bool Corresponde(PerguntaFaq pergunta)
+    {
+        if (!BuscaAtiva)
+        {
+            return true;
+        }
+
+        var texto = Normalizar(pergunta.Pergunta + " " + TextoSemTags(pergunta.RespostaHtml));
+        return Normalizar(_busca!)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .All(texto.Contains);
+    }
+
+    private static string TextoSemTags(string html) =>
+        System.Text.RegularExpressions.Regex.Replace(html, "<[^>]+>", " ");
+
+    private static string Normalizar(string texto)
+    {
+        var decomposto = texto.ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var semAcentos = decomposto.Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark);
+        return new string(semAcentos.ToArray()).Normalize(NormalizationForm.FormC);
+    }
+}

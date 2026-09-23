@@ -17,6 +17,7 @@ public class CompenseAgoraDbContext(DbContextOptions<CompenseAgoraDbContext> opt
     public DbSet<FatorComposicaoCombustivel> FatoresComposicaoCombustivel => Set<FatorComposicaoCombustivel>();
     public DbSet<FatorEnergia> FatoresEnergia => Set<FatorEnergia>();
     public DbSet<FatorEmissaoFrota> FatoresEmissaoFrota => Set<FatorEmissaoFrota>();
+    public DbSet<Auditoria> Auditorias => Set<Auditoria>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
