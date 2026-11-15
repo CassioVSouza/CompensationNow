@@ -11,7 +11,7 @@
 
 <PageTitle>Novo combustível</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Novo combustível</MudText>
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-4">Novo combustível</MudText>
 
 @if (_combustiveis is null)
 {
@@ -30,7 +30,7 @@ else
 
         <MudTextField T="string" Label="Nome" @bind-Value="_nome" Variant="Variant.Outlined" Class="mb-3" />
         <MudTextField T="string" Label="Unidade de medida" @bind-Value="_unidadeMedida" Variant="Variant.Outlined" Class="mb-3"
-                      HelperText="Ex.: L, m³, kWh." />
+                      HelperText="Ex.: L, m³, MWh." />
         <MudCheckBox T="bool" @bind-Value="_combustivelPrincipal" Label="É um combustível principal (não aparece no seletor de viagens)" Class="mb-3" />
 
         <MudSelect T="int?" Label="Combustível biogênico (opcional)" @bind-Value="_codigoCombustivelBiogenico"

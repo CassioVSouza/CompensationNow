@@ -11,7 +11,7 @@
 <PageTitle>Histórico</PageTitle>
 
 <div class="mb-4">
-    <MudText Typo="Typo.h4">Histórico</MudText>
+    <MudText Typo="Typo.h4" HtmlTag="h1">Histórico</MudText>
     <MudText Typo="Typo.body1" Color="Color.Secondary">
         Tudo o que você criou, alterou ou excluiu na plataforma, e os filtros aplicados no painel e no relatório.
     </MudText>
@@ -64,7 +64,7 @@
     <MudTable @ref="_tabela" T="AuditoriaDto" ServerData="CarregarAsync" Hover="true" Dense="false"
               LoadingProgressColor="Color.Primary" RowsPerPage="20">
         <HeaderContent>
-            <MudTh Style="width: 1%;"></MudTh>
+            <MudTh Style="width: 1%;">Detalhes</MudTh>
             <MudTh>Data e hora</MudTh>
             <MudTh>Ação</MudTh>
             <MudTh>Descrição</MudTh>
@@ -133,7 +133,7 @@
         <NoRecordsContent>
             <div class="d-flex flex-column align-items-center text-center py-6">
                 <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
-                <MudText Typo="Typo.h6" Class="mb-1">Nenhuma atividade encontrada</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">Nenhuma atividade encontrada</MudText>
                 <MudText Typo="Typo.body1" Color="Color.Secondary">
                     @(FiltroAtivo
                         ? "Nenhuma atividade corresponde aos filtros selecionados. Tente ampliar o período ou escolher outra ação."

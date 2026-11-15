@@ -1,6 +1,7 @@
 using CompenseAgora.Data;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace CompenseAgora.Tests.Infrastructure;
 
@@ -16,13 +17,15 @@ public sealed class SqliteDbContextFactory : IDisposable
     private readonly SqliteConnection _connection;
     private readonly DbContextOptions<CompenseAgoraDbContext> _options;
 
-    public SqliteDbContextFactory()
+    /// <param name="interceptors">Optional EF interceptors (e.g. AuditoriaInterceptor) attached to every context created.</param>
+    public SqliteDbContextFactory(params IInterceptor[] interceptors)
     {
         _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
 
         _options = new DbContextOptionsBuilder<CompenseAgoraDbContext>()
             .UseSqlite(_connection)
+            .AddInterceptors(interceptors)
             .Options;
 
         using var context = new CompenseAgoraDbContext(_options);

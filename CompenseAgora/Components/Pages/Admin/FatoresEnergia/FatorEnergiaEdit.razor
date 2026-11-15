@@ -12,7 +12,7 @@
 
 <PageTitle>Editar fator de energia</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Editar fator de energia</MudText>
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-4">Editar fator de energia</MudText>
 
 @if (!_loaded)
 {
@@ -41,7 +41,7 @@ else
 
         <MudNumericField T="int" Culture="@CulturaBrasileira.PtBr" Label="Mês" @bind-Value="_mes" Variant="Variant.Outlined" Min="1" Max="12" Class="mb-3" />
         <MudNumericField T="int" Culture="@CulturaBrasileira.PtBr" Label="Ano" @bind-Value="_ano" Variant="Variant.Outlined" Class="mb-3" />
-        <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="FeSin (kg CO2e/kWh)" @bind-Value="_feSin" Variant="Variant.Outlined" Min="0" Class="mb-3" />
+        <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="FeSin (kg CO2e/MWh)" @bind-Value="_feSin" Variant="Variant.Outlined" Min="0" Class="mb-3" />
 
         <div class="d-flex gap-2 mt-2">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSaveAsync" Disabled="@_isSaving">

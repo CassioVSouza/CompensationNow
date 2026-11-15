@@ -19,7 +19,7 @@ public class CalculadoraEmissaoEnergiaTests
 
         var emissao = await calculadora.CalcularEmissaoCO2Async(new DateOnly(2026, 6, 15), quantidade: 500m);
 
-        // 500 kWh * 0.08 kg CO2e/kWh = 40
+        // 500 MWh * 0.08 kg CO2e/MWh = 40
         Assert.Equal(40m, emissao);
     }
 

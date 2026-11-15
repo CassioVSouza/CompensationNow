@@ -14,8 +14,8 @@ public interface ICalculadoraEmissaoEnergia
 
 /// <summary>
 /// Calcula a emissão de CO2e de um registro de energia. Adaptado do EnergiaService do projeto
-/// NeutralizaProjectMVC (ver Calculation.txt): Emissão = Quantidade consumida (kWh) × fator de emissão do
-/// SIN (FeSin, kg CO2e/kWh) do mês de referência, o mesmo "fator médio mensal de emissão de CO2 do Sistema
+/// NeutralizaProjectMVC (ver Calculation.txt): Emissão = Quantidade consumida (MWh) × fator de emissão do
+/// SIN (FeSin, kg CO2e/MWh) do mês de referência, o mesmo "fator médio mensal de emissão de CO2 do Sistema
 /// Interligado Nacional" publicado pelo MCTI/ONS.
 /// O original também tinha um modo "anual" (que somava, em vez de calcular a média, os 12 fatores mensais
 /// do ano — o próprio fallback do código original usava média, então a soma no caminho principal parece um

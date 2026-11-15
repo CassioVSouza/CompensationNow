@@ -94,6 +94,13 @@ Cognito is the credential authority (passwords never touch our database); the ap
 - The `PESSOA.Email` and `PESSOA.CognitoSub` columns both got unique indexes in the `AddCognitoAuthToPessoa` migration — safe on an empty table (the case so far), but if `PESSOA` ever has pre-existing rows without a `CognitoSub`, the migration's `NOT NULL DEFAULT ''` backfill will collide on the new unique index and needs a manual data fix first.
 - No password reset / MFA / hosted-UI flow yet — only register, confirm, login, logout.
 
+### Auditing (`Auditoria` / Histórico page)
+
+- `Entities/Auditoria.cs` → table `AUDITORIA`, one row per user action: `CodigoPessoa` (who), `DataHora` (**UTC**; shown in Brasília time via `Common/FusoHorarioBrasil`), `Acao` (`TipoAcaoAuditoria`: `Criacao`/`Alteracao`/`Exclusao`/`Filtro`, stored as a string), `Entidade` + `CodigoRegistro` (CRUD target, CLR type name), `Tela` + `DataInicioFiltro`/`DataFimFiltro` (filters), and `Detalhes` (JSON list of `AlteracaoCampo` before/after values, pre-formatted pt-BR).
+- **CRUD is audited automatically** by `Data/Interceptors/AuditoriaInterceptor.cs` (an EF `SaveChangesInterceptor`, registered in `Program.cs`): any Added/Modified/Deleted entity in an async `SaveChangesAsync` gets a row, in the same transaction as the change. New handlers need no audit code. It records only fields that actually changed, skips saves with no signed-in user (e.g. self-registration), never stores `Pessoa.CognitoSub`, and does not hook the sync `SaveChanges()` (test seeding relies on that). The user comes from `Common/UsuarioAtual.cs` (`IUsuarioAtual`, backed by `AuthenticationStateProvider`).
+- **Filters are audited explicitly**: pages send `RegistrarFiltroCommand` when the user applies `FiltroPeriodo` (currently `Dashboard` → "Painel", `Relatorio` → "Relatório"). Do the same for any new screen whose filter use should appear in the history.
+- `Features/Auditorias/Queries/GetAuditorias` pages the current user's own history; `RotulosAuditoria` maps entity/property names to pt-BR labels — add new entities/fields there. UI: `Components/Pages/Historico/Historico.razor` (`/historico`).
+
 ### Frontend: Nielsen's 10 usability heuristics
 
 UI/UX work (new pages, components, and reviews of existing ones) should be evaluated against Nielsen's 10 heuristics:

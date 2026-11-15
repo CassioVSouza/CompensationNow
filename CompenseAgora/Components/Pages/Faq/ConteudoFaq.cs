@@ -87,7 +87,7 @@ public static class ConteudoFaq
             new("Como registro meu consumo de energia elétrica?",
                 """
                 <p>Acesse <strong>Energia → Novo registro de energia</strong> e informe o mês de referência e a quantidade
-                consumida em <strong>kWh</strong>. Esse número aparece na sua conta de luz, normalmente no campo
+                consumida em <strong>MWh</strong>. Sua conta de luz mostra o consumo em kWh (divida por 1.000 para obter MWh), normalmente no campo
                 “consumo” ou “energia ativa”.</p>
                 """),
             new("O que é a “data de referência”?",
@@ -171,9 +171,9 @@ public static class ConteudoFaq
                 """),
             new("Como é calculada a emissão da energia elétrica?",
                 """
-                <p><strong>Emissão = consumo (kWh) × fator médio de emissão do SIN no mês de referência.</strong></p>
+                <p><strong>Emissão = consumo (MWh) × fator médio de emissão do SIN no mês de referência.</strong></p>
                 <p>O fator do SIN varia mês a mês conforme a matriz elétrica brasileira. Em meses com mais uso de
-                usinas termelétricas (por exemplo, em períodos de seca), cada kWh consumido gera mais emissão. Por
+                usinas termelétricas (por exemplo, em períodos de seca), cada MWh consumido gera mais emissão. Por
                 isso, o mesmo consumo pode resultar em emissões diferentes em meses diferentes.</p>
                 """),
             new("De onde vêm os fatores de emissão?",
@@ -187,7 +187,7 @@ public static class ConteudoFaq
                 """
                 <p>As causas mais comuns são:</p>
                 <ul>
-                    <li>consumo, distância ou quantidade de kWh informados como zero;</li>
+                    <li>consumo, distância ou quantidade de MWh informados como zero;</li>
                     <li>no registro por distância, o veículo escolhido ainda não tem consumo médio cadastrado;</li>
                     <li>os fatores de emissão necessários ainda não foram cadastrados pelos administradores.</li>
                 </ul>

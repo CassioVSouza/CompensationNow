@@ -9,7 +9,7 @@
 
 <PageTitle>Novo fator de energia</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Novo fator de energia</MudText>
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-4">Novo fator de energia</MudText>
 
 <MudPaper Class="pa-4" Elevation="1" Style="max-width: 600px;">
     @if (_errorMessage is not null)
@@ -19,7 +19,7 @@
 
     <MudNumericField T="int" Culture="@CulturaBrasileira.PtBr" Label="Mês" @bind-Value="_mes" Variant="Variant.Outlined" Min="1" Max="12" Class="mb-3" />
     <MudNumericField T="int" Culture="@CulturaBrasileira.PtBr" Label="Ano" @bind-Value="_ano" Variant="Variant.Outlined" Class="mb-3" />
-    <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="FeSin (kg CO2e/kWh)" @bind-Value="_feSin" Variant="Variant.Outlined" Min="0" Class="mb-3"
+    <MudNumericField T="decimal" Culture="@CulturaBrasileira.PtBr" Label="FeSin (kg CO2e/MWh)" @bind-Value="_feSin" Variant="Variant.Outlined" Min="0" Class="mb-3"
                       HelperText="Fator médio mensal de emissão de CO2 do Sistema Interligado Nacional." />
 
     <div class="d-flex gap-2 mt-2">

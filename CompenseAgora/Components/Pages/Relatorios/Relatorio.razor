@@ -46,14 +46,14 @@ else
 {
     <div class="report-content">
         <div class="report-header mb-4">
-            <MudText Typo="Typo.h5" Class="mb-1">@_nomeCompleto</MudText>
+            <MudText Typo="Typo.h5" HtmlTag="h2" Class="mb-1">@_nomeCompleto</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
                 Período: @_periodoDescricao · Gerado em @DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm", CultureInfo.GetCultureInfo("pt-BR"))
             </MudText>
         </div>
 
         <MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true">
-            <MudText Typo="Typo.subtitle1" Class="mb-2">Sobre este relatório</MudText>
+            <MudText Typo="Typo.subtitle1" HtmlTag="h2" Class="mb-2">Sobre este relatório</MudText>
             <MudText Typo="Typo.body2">
                 Este relatório consolida as emissões de dióxido de carbono equivalente (CO2e) registradas por você
                 na Compense Agora, com base nas suas viagens e no seu consumo de energia. Os valores são calculados
@@ -67,7 +67,7 @@ else
         {
             <MudPaper Class="pa-6 d-flex flex-column align-items-center text-center" Elevation="0" Outlined="true">
                 <MudIcon Icon="@Icons.Material.Filled.Insights" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
-                <MudText Typo="Typo.h6" Class="mb-1">Nenhuma emissão registrada ainda</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">Nenhuma emissão registrada ainda</MudText>
                 <MudText Typo="Typo.body1" Color="Color.Secondary">
                     Adicione uma viagem ou um registro de energia para gerar seu relatório de emissões.
                 </MudText>
@@ -79,25 +79,25 @@ else
                 <MudItem xs="12" sm="6" md="3">
                     <MudPaper Class="pa-4" Elevation="1" Style="border-left: 4px solid #0b0b0b;">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Emissão total</MudText>
-                        <MudText Typo="Typo.h5">@FormatadorEmissao.FormatarToneladas(_dashboard.TotalEmissao)</MudText>
+                        <MudText Typo="Typo.h5" HtmlTag="div">@FormatadorEmissao.FormatarToneladas(_dashboard.TotalEmissao)</MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
                     <MudPaper Class="pa-4" Elevation="1" Style="@($"border-left: 4px solid {CompenseAgoraTheme.ChartSeriesColors[0]};")">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Emissão de viagens</MudText>
-                        <MudText Typo="Typo.h5">@FormatadorEmissao.FormatarToneladas(_dashboard.TotalViagem)</MudText>
+                        <MudText Typo="Typo.h5" HtmlTag="div">@FormatadorEmissao.FormatarToneladas(_dashboard.TotalViagem)</MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
                     <MudPaper Class="pa-4" Elevation="1" Style="@($"border-left: 4px solid {CompenseAgoraTheme.ChartSeriesColors[1]};")">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Emissão de energia</MudText>
-                        <MudText Typo="Typo.h5">@FormatadorEmissao.FormatarToneladas(_dashboard.TotalEnergia)</MudText>
+                        <MudText Typo="Typo.h5" HtmlTag="div">@FormatadorEmissao.FormatarToneladas(_dashboard.TotalEnergia)</MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
                     <MudPaper Class="pa-4" Elevation="1" Style="@($"border-left: 4px solid {CompenseAgoraTheme.CompensacaoSeriesColors[1]};")">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Compensação total</MudText>
-                        <MudText Typo="Typo.h5">@FormatadorEmissao.FormatarToneladas(_dashboard.TotalCompensacao)</MudText>
+                        <MudText Typo="Typo.h5" HtmlTag="div">@FormatadorEmissao.FormatarToneladas(_dashboard.TotalCompensacao)</MudText>
                     </MudPaper>
                 </MudItem>
             </MudGrid>
@@ -105,42 +105,42 @@ else
             <MudGrid Class="mb-4">
                 <MudItem xs="12" md="6">
                     <MudPaper Class="pa-4" Elevation="1">
-                        <MudText Typo="Typo.subtitle1" Class="mb-2">Emitido vs. compensado, últimos 12 meses</MudText>
+                        <MudText Typo="Typo.subtitle1" HtmlTag="h2" Class="mb-2">Emitido vs. compensado, últimos 12 meses</MudText>
                         <MudChart ChartType="ChartType.Line" ChartSeries="@_emitidoCompensadoSeries" ChartLabels="@_monthLabels"
                                   ChartOptions="@_emitidoCompensadoOptions" Width="100%" Height="300px" />
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudPaper Class="pa-4" Elevation="1">
-                        <MudText Typo="Typo.subtitle1" Class="mb-2">Emissão total, últimos 12 meses</MudText>
+                        <MudText Typo="Typo.subtitle1" HtmlTag="h2" Class="mb-2">Emissão total, últimos 12 meses</MudText>
                         <MudChart ChartType="ChartType.Line" ChartSeries="@_totalSeries" ChartLabels="@_monthLabels"
                                   ChartOptions="@_lineOptions" Width="100%" Height="300px" />
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudPaper Class="pa-4" Elevation="1">
-                        <MudText Typo="Typo.subtitle1" Class="mb-2">Viagens vs. energia</MudText>
+                        <MudText Typo="Typo.subtitle1" HtmlTag="h2" Class="mb-2">Viagens vs. energia</MudText>
                         <MudChart ChartType="ChartType.StackedBar" ChartSeries="@_splitSeries" ChartLabels="@_monthLabels"
                                   ChartOptions="@_barOptions" Width="100%" Height="300px" />
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudPaper Class="pa-4" Elevation="1">
-                        <MudText Typo="Typo.subtitle1" Class="mb-2">Emissão de viagens, últimos 12 meses</MudText>
+                        <MudText Typo="Typo.subtitle1" HtmlTag="h2" Class="mb-2">Emissão de viagens, últimos 12 meses</MudText>
                         <MudChart ChartType="ChartType.Line" ChartSeries="@_viagemSeries" ChartLabels="@_monthLabels"
                                   ChartOptions="@_viagemLineOptions" Width="100%" Height="300px" />
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudPaper Class="pa-4" Elevation="1">
-                        <MudText Typo="Typo.subtitle1" Class="mb-2">Emissão de energia, últimos 12 meses</MudText>
+                        <MudText Typo="Typo.subtitle1" HtmlTag="h2" Class="mb-2">Emissão de energia, últimos 12 meses</MudText>
                         <MudChart ChartType="ChartType.Line" ChartSeries="@_energiaSeries" ChartLabels="@_monthLabels"
                                   ChartOptions="@_energiaLineOptions" Width="100%" Height="300px" />
                     </MudPaper>
                 </MudItem>
             </MudGrid>
 
-            <MudText Typo="Typo.h6" Class="mb-2">Viagens registradas</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Viagens registradas</MudText>
             @if (_viagens.Count == 0)
             {
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Nenhuma viagem registrada.</MudText>
@@ -167,7 +167,7 @@ else
                 </MudTable>
             }
 
-            <MudText Typo="Typo.h6" Class="mb-2">Consumo de energia registrado</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Consumo de energia registrado</MudText>
             @if (_energias.Count == 0)
             {
                 <MudText Typo="Typo.body2" Color="Color.Secondary">Nenhum registro de energia.</MudText>
@@ -188,7 +188,7 @@ else
                 </MudTable>
             }
 
-            <MudText Typo="Typo.h6" Class="mb-2">Compensações registradas</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Compensações registradas</MudText>
             @if (_compensacoes.Count == 0)
             {
                 <MudText Typo="Typo.body2" Color="Color.Secondary">Nenhuma compensação registrada.</MudText>

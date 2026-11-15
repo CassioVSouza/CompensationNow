@@ -10,7 +10,7 @@
 <PageTitle>Compensação</PageTitle>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <MudText Typo="Typo.h4">Compensação</MudText>
+    <MudText Typo="Typo.h4" HtmlTag="h1">Compensação</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/compensacoes/nova">
         Nova compensação
     </MudButton>
@@ -27,7 +27,7 @@ else if (_compensacoes.Count == 0)
 {
     <MudPaper Class="pa-6 d-flex flex-column align-items-center text-center" Elevation="0" Outlined="true">
         <MudIcon Icon="@Icons.Material.Filled.Park" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
-        <MudText Typo="Typo.h6" Class="mb-1">Nenhuma compensação cadastrada ainda</MudText>
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">Nenhuma compensação cadastrada ainda</MudText>
         <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
             Registre suas compensações de carbono para acompanhar seu saldo de emissões.
         </MudText>
@@ -50,7 +50,7 @@ else
                 <MudTh><MudTableSortLabel SortBy="new Func<Features.Compensacoes.CompensacaoDto, object>(x => x.DataReferencia)">Data de referência</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel SortBy="new Func<Features.Compensacoes.CompensacaoDto, object>(x => x.TipoCompensacao)">Tipo</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel SortBy="new Func<Features.Compensacoes.CompensacaoDto, object>(x => x.QuantidadeCompensada)">Quantidade compensada</MudTableSortLabel></MudTh>
-                <MudTh Style="width: 1%;"></MudTh>
+                <MudTh Style="width: 1%;">Ações</MudTh>
             </HeaderContent>
             <RowTemplate Context="row">
                 @{ var compensacao = row!; }

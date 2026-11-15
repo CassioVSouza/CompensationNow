@@ -47,6 +47,20 @@ public class CreateViagemCommandValidatorTests
     }
 
     [Fact]
+    public void CodigoFrota_Null_WithCodigoCombustivelSet_Passes()
+    {
+        var result = _validator.TestValidate(ValidCommand() with { CodigoFrota = null, CodigoCombustivel = 3 });
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Fact]
+    public void CodigoFrota_And_CodigoCombustivel_BothNull_Fails()
+    {
+        var result = _validator.TestValidate(ValidCommand() with { CodigoFrota = null, CodigoCombustivel = null });
+        result.ShouldHaveValidationErrorFor(x => x.CodigoFrota);
+    }
+
+    [Fact]
     public void CodigoCombustivel_ZeroOrNegative_Fails_WhenProvided()
     {
         var result = _validator.TestValidate(ValidCommand() with { CodigoCombustivel = 0 });
@@ -138,5 +152,29 @@ public class CreateViagemCommandHandlerTests
         var viagem = await dbContext.Viagens.FindAsync(codigo);
         Assert.NotNull(viagem);
         Assert.Equal(combustivel.Codigo, viagem!.CodigoCombustivel);
+    }
+
+    [Fact]
+    public async Task Handle_InsertsViagem_WithCombustivelSet_AndNoFrota()
+    {
+        using var factory = new SqliteDbContextFactory();
+        await using var seedContext = factory.CreateContext();
+        var pessoa = TestDataFactory.CreatePessoa(seedContext);
+        var combustivel = TestDataFactory.CreateCombustivel(seedContext, "Etanol");
+        await seedContext.SaveChangesAsync();
+
+        await using var dbContext = factory.CreateContext();
+        var handler = new CreateViagemCommandHandler(dbContext, new CalculadoraEmissaoViagem(dbContext));
+
+        var command = new CreateViagemCommand(
+            pessoa.Codigo, CodigoFrota: null, CodigoCombustivel: combustivel.Codigo,
+            DataReferencia: new DateOnly(2026, 4, 1), Consumo: 15m, AnoFrota: 0, DistanciaKM: 0m);
+
+        var codigo = await handler.Handle(command, CancellationToken.None);
+
+        var viagem = await dbContext.Viagens.FindAsync(codigo);
+        Assert.NotNull(viagem);
+        Assert.Null(viagem!.CodigoFrota);
+        Assert.Equal(combustivel.Codigo, viagem.CodigoCombustivel);
     }
 }

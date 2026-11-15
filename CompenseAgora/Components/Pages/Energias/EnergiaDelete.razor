@@ -13,7 +13,7 @@
 
 <PageTitle>Excluir registro de energia</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Excluir registro de energia</MudText>
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-4">Excluir registro de energia</MudText>
 
 @if (_energia is null)
 {
@@ -52,7 +52,7 @@ else
                 </tr>
                 <tr>
                     <td><MudText Typo="Typo.body2" Color="Color.Secondary">Quantidade</MudText></td>
-                    <td><MudText Typo="Typo.body1">@_energia.Quantidade.ToString("N2") kWh</MudText></td>
+                    <td><MudText Typo="Typo.body1">@_energia.Quantidade.ToString("N2") MWh</MudText></td>
                 </tr>
                 <tr>
                     <td><MudText Typo="Typo.body2" Color="Color.Secondary">Emissão de CO2</MudText></td>

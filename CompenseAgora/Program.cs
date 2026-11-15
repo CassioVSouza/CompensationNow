@@ -12,6 +12,7 @@ using CompenseAgora.Features.Viagens.Calculo;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
@@ -50,7 +51,12 @@ builder.Services.AddScoped<ICalculadoraEmissaoViagem, CalculadoraEmissaoViagem>(
 builder.Services.AddScoped<ICalculadoraEmissaoEnergia, CalculadoraEmissaoEnergia>();
 
 builder.Services.AddDefaultAWSOptions(builder.Configuration.GetAWSOptions());
-builder.Services.AddAWSService<IAmazonCognitoIdentityProvider>();
+// SignUp/ConfirmSignUp/ResendConfirmationCode/InitiateAuth are unauthenticated Cognito APIs, so the client
+// needs no AWS credentials (no IAM keys or instance role required on the host).
+builder.Services.AddSingleton<IAmazonCognitoIdentityProvider>(sp =>
+    new AmazonCognitoIdentityProviderClient(
+        new Amazon.Runtime.AnonymousAWSCredentials(),
+        builder.Configuration.GetAWSOptions().Region ?? Amazon.RegionEndpoint.USEast2));
 builder.Services.Configure<CognitoOptions>(builder.Configuration.GetSection(CognitoOptions.SectionName));
 builder.Services.AddScoped<CognitoAuthService>();
 
@@ -65,7 +71,17 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 
+// Behind nginx the app only sees plain HTTP from localhost; trust X-Forwarded-* so scheme/IP are the client's.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
